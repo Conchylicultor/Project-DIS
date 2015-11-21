@@ -43,7 +43,7 @@
 ### QT = core gui widgets network
 ###
 ###-----------------------------------------------------------------------------
-CFLAGS = -O3 -DWEBOTS -I$(WEBOTS_HOME)/include/controller/c # -DQUIET
+CFLAGS = -Wall -std=c++11 -O3 -DWEBOTS -I$(WEBOTS_HOME)/include/controller/c # -DQUIET
 
 ### Do not modify: this includes Webots global Makefile.include
 space :=
