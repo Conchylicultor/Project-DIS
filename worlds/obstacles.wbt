@@ -524,7 +524,7 @@ Supervisor {
     }
   ]
   name "super1"
-  controller "flock_super"
+  controller "supervisor"
 }
 DEF epuck0 DifferentialWheels {
   translation -2.9 0 0
@@ -2150,7 +2150,7 @@ DEF epuck0 DifferentialWheels {
       }
     ]
   }
-  controller "flock_controller"
+  controller "swarm"
   axleLength 0.052
   wheelRadius 0.0205
   maxSpeed 6.28
@@ -3768,7 +3768,7 @@ DEF epuck1 DifferentialWheels {
       }
     ]
   }
-  controller "flock_controller"
+  controller "swarm"
   axleLength 0.052
   wheelRadius 0.0205
   maxSpeed 6.28
@@ -5386,7 +5386,7 @@ DEF epuck2 DifferentialWheels {
       }
     ]
   }
-  controller "flock_controller"
+  controller "swarm"
   axleLength 0.052
   wheelRadius 0.0205
   maxSpeed 6.28
@@ -7004,7 +7004,7 @@ DEF epuck3 DifferentialWheels {
       }
     ]
   }
-  controller "flock_controller"
+  controller "swarm"
   axleLength 0.052
   wheelRadius 0.0205
   maxSpeed 6.28
@@ -8634,7 +8634,7 @@ DEF epuck4 DifferentialWheels {
       }
     ]
   }
-  controller "flock_controller"
+  controller "swarm"
   axleLength 0.052
   wheelRadius 0.0205
   maxSpeed 6.28

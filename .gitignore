@@ -1,3 +1,5 @@
 .*.wbproj
 .*.wbt.project
 build/
+supervisor
+swarm
