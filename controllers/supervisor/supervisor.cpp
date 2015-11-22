@@ -102,10 +102,6 @@ int main(int argc, char *args[])
     // Update the robot locations
     for (int i=0 ; i<ROBOTS ; i++)
     {
-      loc[0][0] = wb_supervisor_field_get_sf_vec3f(robs_translation[0])[0];
-      loc[0][1] = wb_supervisor_field_get_sf_vec3f(robs_translation[0])[1];
-      loc[0][2] = wb_supervisor_field_get_sf_vec3f(robs_translation[0])[2];
-      loc[0][3] = wb_supervisor_field_get_sf_rotation(robs_rotation[0])[3];
       loc[i][0] = wb_supervisor_field_get_sf_vec3f(robs_translation[i])[0];
       loc[i][1] = wb_supervisor_field_get_sf_vec3f(robs_translation[i])[1];
       loc[i][2] = wb_supervisor_field_get_sf_vec3f(robs_translation[i])[2];
@@ -118,7 +114,7 @@ int main(int argc, char *args[])
     nbTimestep++;
     
     // Plot every 20 timesteps
-    if(nbTimestep > 0 && nbTimestep % 20 == 0)
+    if(nbTimestep > 0 && nbTimestep % 5 == 0)
     {
       cout << "Performances:" << endl;
       cout << fitnessInstant << " (instant)" << endl;
