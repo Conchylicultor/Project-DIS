@@ -1,4 +1,4 @@
-#VRML_SIM V8.2.1 utf8
+#VRML_SIM V8.3.0 utf8
 WorldInfo {
   info [
     "Description"
@@ -9,7 +9,7 @@ WorldInfo {
 }
 Viewpoint {
   orientation -0.993135 -0.112627 -0.0316072 1.03351
-  position -2.04197 17.7728 11.1663
+  position -1.31384 5.03806 3.37144
 }
 PointLight {
   intensity 0.5
