@@ -1,8 +1,7 @@
-#include <cassert>
-#include <cmath>
 #include <iostream>
+#include <cstdio> // For sscanf
+#include <cmath>
 #include <string>
-#include <vector>
 
 #include <webots/robot.h>
 
@@ -11,176 +10,111 @@
 #include <webots/emitter.h>
 #include <webots/receiver.h>
 
-
-#define DEBUG_COHESION 1
-
+using namespace std;
 
 
-/*************************************************** Overall settings     *****/
+// Global parametters
+static const int FLOCK_SIZE = 5; // Number of robot in each flock (WARNING: Adapt to the number of robot)
+static const int TIME_STEP = 64; // [ms] Length of time step
 
-const int TIME_STEP = 32;
+string robotName;
+int robotIdGlobal = 0;
+int robotId = 0; // Id for the flock
 
+static const int NB_SENSORS = 8; // Number of distance sensors
 
-/*************************************************** Robot's capabilities *****/
-
-int robot_id; // Unique robot ID
-WbDeviceTag emitter;
-WbDeviceTag receiver;
-
-
-/*************************************************** Coordinate system    *****/
-
-// Coordinate for planar space; in Webots it corresponds to X & Z coordinates
-struct Point
-{
-    double x;
-    double y;
-};
-
-using Points = std::vector<Point>;
-
-Point compute_center(Points const& ps); // invalid if ps is empty!
-
-std::ostream& operator<<(std::ostream& out, Point const& p);
-
-std::ostream& operator<<(std::ostream& out, Points const& ps);
-
-/*************************************************** Robot's setup        *****/
-
-void reset(void)
-{
-    char const* robot_name = wb_robot_get_name();
-    std::cout << "Reset of robot " << robot_name << std::endl;
-
-    sscanf(robot_name, "epuck%d", &robot_id);
-
-    emitter = wb_robot_get_device("emitter");
-    receiver = wb_robot_get_device("receiver");
-
-    assert(emitter);
-    assert(receiver);
-}
-
-void setup_emitter(int channel)
-{
-    wb_emitter_set_channel(emitter, channel);
-    // Other properties are already setup in Webots
-}
-
-void setup_receiver(int channel)
-{
-    wb_receiver_set_channel(receiver, channel);
-    wb_receiver_enable(receiver, TIME_STEP);
-    // Other properties are already setup in Webots
-}
+WbDeviceTag ds[NB_SENSORS];	// Handle for the infrared distance sensors
+WbDeviceTag receiver2;		// Handle for the receiver node
+WbDeviceTag emitter2;		// Handle for the emitter node
 
 
-/*************************************************** Robots Cohesion      *****/
-
-// Send a ping in order to let other boids know where this robot is
-void ping()
-{
-    std::string ping = "ping"; // the content doesn't matter as long as it's not empty
-    wb_emitter_send(emitter, ping.data(), ping.size());
-}
-
-// Find neighbours' relative position
-Points find_neighbours()
-{
-    Points neighbours;
-
-    // Read all packets available; because we have a null-delay this works fine but might be an
-    // issue with real-world e-pucks
-    for (; wb_receiver_get_queue_length(receiver) > 0; wb_receiver_next_packet(receiver))
-    {
-        // Compute relative position using the direction and signal = 1/distance^2
-        // We assume all robots are on a flat floor and therefore ignore the y-coordinate of the
-        // direction
-        const double* dir = wb_receiver_get_emitter_direction(receiver);
-        double signal = wb_receiver_get_signal_strength(receiver);
-
-        double dirX = dir[0];
-        double dirZ = dir[2];
-        double theta = std::atan2(dirZ, dirX);
-
-        double distance = std::sqrt(1.0 / signal);
-
-        neighbours.push_back({ std::cos(theta) * distance, std::sin(theta) * distance });
-    }
-
-#if defined(DEBUG_COHESION) && DEBUG_COHESION
-    std::cout << "Neibours for robot " << robot_id << ": " << neighbours << std::endl;
-#endif
-
-    return neighbours;
-}
-
-
-/*************************************************** Robot's main algo    *****/
-
-void step()
-{
-    // Cohesion: let others know were we are and determine the center of the swarm
-    ping();
-
-    Points neighbours = find_neighbours();
-    neighbours.push_back({ 0, 0 }); // add our position (local coord system)
-    Point const cohesion_center = compute_center(neighbours);
-
-#if defined(DEBUG_COHESION) && DEBUG_COHESION
-    std::cout << "Cohesion center for robot " << robot_id << ": " << cohesion_center << std::endl;
-#endif
-}
-
-int main(int argc, char* args[])
+/*
+ * Reset the robot's devices and get its ID
+ */
+static void reset() 
 {
     wb_robot_init();
-    reset();
-
-    // TODO set channel in Webots controller argument field & read channel from argv here
-    int channel = WB_CHANNEL_BROADCAST;
-
-    setup_emitter(channel);
-    setup_receiver(channel);
-
-    // Loop until webots wants to stop
-    while (wb_robot_step(TIME_STEP) != -1) {
-        step();
+    
+    // Loading robot name
+    robotName = wb_robot_get_name();
+    sscanf(robotName.c_str(),"epuck%d",&robotIdGlobal); // read robot id from the robot's name
+    robotId = robotIdGlobal % FLOCK_SIZE; // normalize between 0 and FLOCK_SIZE-1
+    
+    cout << "Loading: robot " << robotIdGlobal << " (" << (robotIdGlobal/FLOCK_SIZE) + 1 << ":" << robotId << ")" << endl;
+    
+    // Loading R&B module
+    receiver2 = wb_robot_get_device("receiver");
+    emitter2 = wb_robot_get_device("emitter");
+    wb_receiver_enable(receiver2,64);
+    
+    // Loading the distances sensors
+    for(int i=0; i<NB_SENSORS;i++) {
+        ds[i]=wb_robot_get_device(string("ps" + std::to_string(i)).c_str());	// the device name is specified in the world file
+        wb_distance_sensor_enable(ds[i],64);
     }
-
-    wb_robot_cleanup();
-
-    return 0;
 }
 
-
-/*************************************************** Miscellaneous        *****/
-
-Point compute_center(Points const& ps)
+/*
+ * Try avoiding obstacles
+ */
+void braitenbergObstacle(int wheelSpeed[2])
 {
-    assert(ps.size() > 0);
-
-    double sumX = 0, sumY = 0;
-    for (auto const& p : ps) {
-        sumX += p.x;
-        sumY += p.y;
-    }
-
-    return { sumX / ps.size(), sumY / ps.size() };
+  // Parametters
+  static int MIN_SENS = 350;
+  static int weightMatrix[2][NB_SENSORS] = {{-72,-58,-36,8,10,36,28,18},
+                                            {18,28,36,10,8,-36,-58,-72}}; // braitenberg weight
+  int distance = 0;
+  
+  // Reinitialisation
+  wheelSpeed[0] = 0;
+  wheelSpeed[1] = 0;
+  
+  // Compute the ponderate behavior
+  for(int i=0 ; i<NB_SENSORS ; i++)
+  {
+    distance = wb_distance_sensor_get_value(ds[i]); //Read sensor values
+    
+    // Weighted sum of distance sensor values for Braitenburg vehicle
+    wheelSpeed[0] += weightMatrix[0][i] * distance; // Left
+    wheelSpeed[1] += weightMatrix[1][i] * distance; // Right
+  }
+  
+  // Adapt the speed
+  wheelSpeed[0] /= MIN_SENS;
+  wheelSpeed[1] /= MIN_SENS;
 }
 
-std::ostream& operator<<(std::ostream& out, Point const& p)
-{
-    return out << "{ " << p.x << ", " << p.y << " }";
-}
-
-std::ostream& operator<<(std::ostream& out, Points const& ps)
-{
-    out << "[ ";
-    for (auto const& p : ps)
-        out << p << " ";
-    out << "]";
-
-    return out;
-}
+/*
+ * Main function.
+ */
+int main(){ 
+  // Initialize the robot
+  reset();
+  
+  int wheelSpeed[2] = {0,0}; // Left and right wheel speed
+  int wheelSpeedBraitenberg[2] = {0,0}; // Left and right wheel speed
+  
+  // Main loop
+  while(true)
+  {
+    // Reinitialization
+    
+    // Braitenberg obstacle avoidance
+    braitenbergObstacle(wheelSpeedBraitenberg);
+    
+    // Compute speed
+    wheelSpeed[0] = 300;
+    wheelSpeed[1] = 300;
+    
+    // Add Braitenberg
+    wheelSpeed[0] += wheelSpeedBraitenberg[0];
+    wheelSpeed[1] += wheelSpeedBraitenberg[1];
+    
+    // Set speed
+    wb_differential_wheels_set_speed(wheelSpeed[0],wheelSpeed[1]);
+    
+    // Continue one step
+    wb_robot_step(TIME_STEP);
+  }
+}  
 
