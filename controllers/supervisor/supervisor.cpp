@@ -93,17 +93,21 @@ float getCohesion(void)
  */
 float getVelocity(void)
 {
-  const float maxVelocity = 1.0f; // TODO: Define max velocity of our webots
+  const float maxVelocity = 0.001f; // TODO: Define max velocity of our webots
   
   // Compute the current velocity
   float velocityVector[3] = {centerOfMass[0] - prevCenterOfMass[0],
                              centerOfMass[1] - prevCenterOfMass[1],
                              centerOfMass[2] - prevCenterOfMass[2]}; // = x(t) - x(t-1)
   
-  // Compute the projection with respect to the migration urge
-  float projection = computeDot(velocityVector, migrationUrge);
+  // First way: Compute the projection with respect to the migration urge
+  //float currentVelocity = computeDot(velocityVector, migrationUrge);
   
-  return projection / maxVelocity; // Return the normalized velocity
+  // Second way: We simply take the velocity of the center of mass
+  float origin[3] = {0,0,0};
+  float currentVelocity = computeDist(velocityVector, origin); // Norm of the vector
+  
+  return currentVelocity / maxVelocity; // Return the normalized velocity
 }
 
 /*
