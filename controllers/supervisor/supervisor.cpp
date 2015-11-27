@@ -218,16 +218,16 @@ int main(int argc, char *args[])
     // (t-1) = t
     for(int j=0 ; j<3 ; ++j) // 3 is the number of dimension
     {
-      prevCenterOfMass[j] = centerOfMass[j]; // Reset
+      prevCenterOfMass[j] = centerOfMass[j];
     }
     
     nbTimestep++;
     
     // Limit
-    if(nbTimestep > 2000)
-    {
-        finished = true;
-    }
+    //if(nbTimestep > 2000)
+    //{
+    //    finished = true;
+    //}
     
     wb_robot_step(64);
   }
