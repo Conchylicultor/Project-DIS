@@ -201,9 +201,19 @@ int main(int argc, char *args[])
     }
     
     // Update fitness
-    fitnessInstant = computeFitnessStep();
-    fitnessGlobal += fitnessInstant;
-    nbTimestep++;
+    if(nbTimestep > 0)
+    {
+      fitnessInstant = computeFitnessStep();
+      fitnessGlobal += fitnessInstant;
+    
+      // Plot every x timesteps
+      if(nbTimestep % 1 == 0)
+      {
+        cout << "Performances:" << endl;
+        cout << fitnessInstant << " (instant)" << endl;
+        cout << fitnessGlobal/nbTimestep << " (global)" << endl;
+      }
+    }
     
     // (t-1) = t
     for(int j=0 ; j<3 ; ++j) // 3 is the number of dimension
@@ -211,13 +221,7 @@ int main(int argc, char *args[])
       prevCenterOfMass[j] = centerOfMass[j]; // Reset
     }
     
-    // Plot every x timesteps
-    if(nbTimestep > 0 && nbTimestep % 1 == 0)
-    {
-      cout << "Performances:" << endl;
-      cout << fitnessInstant << " (instant)" << endl;
-      cout << fitnessGlobal/nbTimestep << " (global)" << endl;
-    }
+    nbTimestep++;
     
     // Limit
     if(nbTimestep > 2000)
