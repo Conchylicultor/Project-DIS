@@ -9,6 +9,8 @@
 
 using namespace std;
 
+//#define DEBUG_PRINT
+
 
 // Fitness weights
 static const float WEIGHT_ORIENTATION = 1.0;
@@ -64,7 +66,7 @@ float getOrientation(void)
   {
     orientation += std::polar(1.0f, loc[i][3]); // 1.0 * exp(i*theta)
   }
-  
+
   // Normalize
   return std::abs(orientation) / ROBOTS;
 }
@@ -75,7 +77,7 @@ float getOrientation(void)
 float getCohesion(void)
 {
   // The center of mass is already computed in the main fuction
-  
+
   // Compute the average distance to the center of mass
   float dist = 0.0f;
   for(int i=0 ; i<ROBOTS ; ++i)
@@ -83,7 +85,7 @@ float getCohesion(void)
     dist += computeDist(centerOfMass, loc[i]); // Thanks to the dirty C syntax, loc[i][4] is automatically "cast" into loc[i][3]
   }
   dist /= ROBOTS;
-  
+
   // Return the metric
   return 1.0f/(1.0f+dist); // The closest, the better is
 }
@@ -94,19 +96,19 @@ float getCohesion(void)
 float getVelocity(void)
 {
   const float maxVelocity = 0.001f; // TODO: Define max velocity of our webots
-  
+
   // Compute the current velocity
   float velocityVector[3] = {centerOfMass[0] - prevCenterOfMass[0],
                              centerOfMass[1] - prevCenterOfMass[1],
                              centerOfMass[2] - prevCenterOfMass[2]}; // = x(t) - x(t-1)
-  
+
   // First way: Compute the projection with respect to the migration urge
   //float currentVelocity = computeDot(velocityVector, migrationUrge);
-  
+
   // Second way: We simply take the velocity of the center of mass
   float origin[3] = {0,0,0};
   float currentVelocity = computeDist(velocityVector, origin); // Norm of the vector
-  
+
   return currentVelocity / maxVelocity; // Return the normalized velocity
 }
 
@@ -118,15 +120,17 @@ float computeFitnessStep(void)
   float orientation = getOrientation();
   float cohesion = getCohesion();
   float velocity = getVelocity();
-  
+
+#ifdef DEBUG_PRINT
   cout << "o:" << orientation << endl;
   cout << "c:" << cohesion << endl;
   cout << "v:" << velocity << endl;
-  
+#endif
+
   // Return normalized and weighted fitness
   return (WEIGHT_ORIENTATION * orientation +
           WEIGHT_COHESION * cohesion +
-          WEIGHT_VELOCITY * velocity) / 
+          WEIGHT_VELOCITY * velocity) /
          (WEIGHT_ORIENTATION + WEIGHT_COHESION + WEIGHT_VELOCITY); // Wrong: DO MULTIPLICATION INSTEAD OF ADDITION ?
 }
 
@@ -145,7 +149,7 @@ void reset(void)
   // Get the epucks from the tree
   for (int i=0 ; i<ROBOTS ; i++) {
     string robotName = "epuck" + std::to_string(i);
-    
+
     robs[i] = wb_supervisor_node_get_from_def(robotName.c_str());
     if(robs[i] == NULL) // Check correctness
     {
@@ -155,9 +159,9 @@ void reset(void)
     robs_translation[i] = wb_supervisor_node_get_field(robs[i],"translation");
     robs_rotation[i] = wb_supervisor_node_get_field(robs[i],"rotation");
   }
-  
+
   cout << ROBOTS << " robots loaded!" << endl;
-  
+
   // TODO: Compute the migration urge
   // The migration urge is normalized
 }
@@ -169,11 +173,11 @@ int main(int argc, char *args[])
 {
   cout << "Loading supervisor..." << endl;
   reset();
-  
+
   float fitnessGlobal = 0.0f;
   float fitnessInstant = 0.0f;
   int nbTimestep = 0;
-  
+
   // Main loop !
   bool finished = false;
   while(!finished)
@@ -186,7 +190,7 @@ int main(int argc, char *args[])
       loc[i][2] = wb_supervisor_field_get_sf_vec3f(robs_translation[i])[2]; // z
       loc[i][3] = wb_supervisor_field_get_sf_rotation(robs_rotation[i])[3]; // theta (rotation)
     }
-    
+
     // Update the center of mass
     for(int j=0 ; j<3 ; ++j) // 3 is the number of dimension
     {
@@ -199,38 +203,38 @@ int main(int argc, char *args[])
         centerOfMass[j] += loc[i][j] / ROBOTS; // We add the contribution of each robot
       }
     }
-    
+
     // Update fitness
     if(nbTimestep > 0)
     {
       fitnessInstant = computeFitnessStep();
       fitnessGlobal += fitnessInstant;
-    
+
       // Plot every x timesteps
-      if(nbTimestep % 1 == 0)
+      if(nbTimestep % 1000 == 0)
       {
         cout << "Performances:" << endl;
         cout << fitnessInstant << " (instant)" << endl;
         cout << fitnessGlobal/nbTimestep << " (global)" << endl;
       }
     }
-    
+
     // (t-1) = t
     for(int j=0 ; j<3 ; ++j) // 3 is the number of dimension
     {
       prevCenterOfMass[j] = centerOfMass[j];
     }
-    
+
     nbTimestep++;
-    
+
     // Limit
     //if(nbTimestep > 2000)
     //{
     //    finished = true;
     //}
-    
+
     wb_robot_step(64);
   }
-  
+
   return 0;
 }
