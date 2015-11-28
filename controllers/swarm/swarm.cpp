@@ -1,4 +1,5 @@
 
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -51,7 +52,6 @@ double my_position[3];                   // X, Z, Theta of the current robot
 double prev_my_position[3];           // X, Z, Theta of the current robot in the previous time step
 double speed[FLOCK_SIZE][2];          // Speeds calculated with Reynold's rules
 double relative_speed[FLOCK_SIZE][2]; // Speeds calculated with Reynold's rules
-int initialized[FLOCK_SIZE];          // != 0 if initial positions have been received
 double migr[2] = { 25, -25 };         // Migration vector
 char const* robot_name;
 
@@ -65,16 +65,15 @@ static void reset()
     receiver = wb_robot_get_device("receiver");
     emitter = wb_robot_get_device("emitter");
 
-    int i;
     char s[4] = "ps0";
-    for (i = 0; i < NB_SENSORS; i++)
+    for (int i = 0; i < NB_SENSORS; i++)
     {
         ds[i] = wb_robot_get_device(s);         // the device name is specified in the world file
         s[2]++;                                 // increases the device number
     }
     robot_name = static_cast<char const*>(wb_robot_get_name());
 
-    for (i = 0; i < NB_SENSORS; i++)
+    for (int i = 0; i < NB_SENSORS; i++)
         wb_distance_sensor_enable(ds[i], 64);
 
     wb_receiver_enable(receiver, 64);
@@ -83,11 +82,6 @@ static void reset()
     // simulation!
     sscanf(robot_name, "epuck%d", &robot_id_u);   // read robot id from the robot's name
     robot_id = robot_id_u % FLOCK_SIZE;           // normalize between 0 and FLOCK_SIZE-1
-
-    for (i = 0; i < FLOCK_SIZE; i++)
-    {
-        initialized[i] = 0; // Set initialization to 0 (= not yet initialized)
-    }
 
     printf("Reset: robot %d\n", robot_id_u);
 }
@@ -166,17 +160,12 @@ void compute_wheel_speeds(int* msl, int* msr)
 
 void reynolds_rules()
 {
-    int i, j, k;                         // Loop counters
+    /* Compute averages over the whole flock */
     double rel_avg_loc[2] = { 0, 0 };    // Flock average positions
     double rel_avg_speed[2] = { 0, 0 };  // Flock average speeds
-    double cohesion[2] = { 0, 0 };
-    double dispersion[2] = { 0, 0 };
-    double consistency[2] = { 0, 0 };
-
-    /* Compute averages over the whole flock */
-    for (j = 0; j < 2; j++)
+    for (int j = 0; j < 2; j++)
     {
-        for (i = 0; i < FLOCK_SIZE; i++)
+        for (int i = 0; i < FLOCK_SIZE; i++)
         {
             // don't consider yourself for the average
             if (i != robot_id)
@@ -188,8 +177,8 @@ void reynolds_rules()
     }
 
     /* Rule 1 - Aggregation/Cohesion: move towards the center of mass */
-
-    for (j = 0; j < 2; j++)
+    double cohesion[2] = { 0, 0 };
+    for (int j = 0; j < 2; j++)
     {
         // If center of mass is too far
         if (abs(rel_avg_loc[j]) > RULE1_THRESHOLD)
@@ -199,14 +188,15 @@ void reynolds_rules()
     }
 
     /* Rule 2 - Dispersion/Separation: keep far enough from flockmates */
-    for (k = 0; k < FLOCK_SIZE; k++)
+    double dispersion[2] = { 0, 0 };
+    for (int k = 0; k < FLOCK_SIZE; k++)
     {
-        if (k != robot_id)
-        { // Loop on flockmates only
+        if (k != robot_id) // Loop on flockmates only
+        {
             // If neighbor k is too close
             if (pow(relative_pos[k][0], 2) + pow(relative_pos[k][1], 2) < RULE2_THRESHOLD)
             {
-                for (j = 0; j < 2; j++)
+                for (int j = 0; j < 2; j++)
                 {
                     dispersion[j] -= relative_pos[k][j]; // Relative distance to k
                 }
@@ -215,13 +205,14 @@ void reynolds_rules()
     }
 
     /* Rule 3 - Consistency/Alignment: match the speeds of flockmates */
-    for (j = 0; j < 2; j++)
+    double consistency[2] = { 0, 0 }; // copy rel_avg_speed:
+    for (int j = 0; j < 2; j++)
     {
         consistency[j] = rel_avg_speed[j]; // difference speed to the average
     }
 
     // aggregation of all behaviors with relative influence determined by weights
-    for (j = 0; j < 2; j++)
+    for (int j = 0; j < 2; j++)
     {
         speed[robot_id][j] = cohesion[j] * RULE1_WEIGHT;
         speed[robot_id][j] += dispersion[j] * RULE2_WEIGHT;
@@ -235,7 +226,7 @@ void reynolds_rules()
  * the sender.
  * The message contains the robot's name
  * The range and bearing will be measured directly out of message RSSI and direction
-*/
+ */
 void send_ping(void)
 {
     char out[10];
@@ -246,40 +237,33 @@ void send_ping(void)
 /*
  * processing all the received ping messages, and calculate range and bearing to the other robots
  * the range and bearing are measured directly out of message RSSI and direction
-*/
+ *
+ * RSSI: Received Signal Strength indicator
+ */
 void process_received_ping_messages(void)
 {
-    const double* message_direction;
-    double message_rssi; // Received Signal Strength indicator
-    double theta;
-    double range;
-    char* inbuffer; // Buffer for the receiver node
-    int other_robot_id;
     while (wb_receiver_get_queue_length(receiver) > 0)
     {
-        inbuffer = (char*)wb_receiver_get_data(receiver);
-        message_direction = wb_receiver_get_emitter_direction(receiver);
-        message_rssi = wb_receiver_get_signal_strength(receiver);
-        double y = message_direction[2];
+        char const* inbuffer = static_cast<char const*>(wb_receiver_get_data(receiver));
+        const double* message_direction = wb_receiver_get_emitter_direction(receiver);
+        double message_rssi = wb_receiver_get_signal_strength(receiver);
         double x = message_direction[0];
+        double z = message_direction[2]; // correspond to our 'y'
 
-        theta = -atan2(y, x);
+        double theta = -atan2(z, x);
         theta += my_position[2]; // find the relative theta;
-        range = sqrt((1 / message_rssi));
+        double range = sqrt((1 / message_rssi));
 
-        other_robot_id = (int)(inbuffer[5] - '0'); // since the name of the sender is in the
-                                                   // received message. Note: this does not work for
-                                                   // robots having id bigger than 9!
+        int other_robot_id = (int)(inbuffer[5] - '0'); // since the name of the sender is in the
+                                                       // received message. Note: this does not work
+                                                       // for robots having id bigger than 9!
 
         // Get position update
         prev_relative_pos[other_robot_id][0] = relative_pos[other_robot_id][0];
         prev_relative_pos[other_robot_id][1] = relative_pos[other_robot_id][1];
 
-        relative_pos[other_robot_id][0] = range * cos(theta);          // relative x pos
-        relative_pos[other_robot_id][1] = -range * sin(theta);         // relative y pos
-
-        // printf("Robot %s, from robot %d, x: %g, y: %g, theta %g, my
-        // theta%g\n",robot_name,other_robot_id,relative_pos[other_robot_id][0],relative_pos[other_robot_id][1],my_position[2]*180.0/3.141592,my_position[2]*180.0/3.141592);
+        relative_pos[other_robot_id][0] = range * cos(theta);  // relative x pos
+        relative_pos[other_robot_id][1] = -range * sin(theta); // relative y pos
 
         relative_speed[other_robot_id][0] = (1 / DELTA_T) * (relative_pos[other_robot_id][0] -
                                                              prev_relative_pos[other_robot_id][0]);
@@ -289,39 +273,30 @@ void process_received_ping_messages(void)
     }
 }
 
-// the main function
 int main()
 {
-    int msl, msr;                       // Wheel speeds
-    int bmsl, bmsr, sum_sensors;        // Braitenberg parameters
-    int i;                              // Loop counter
-    int distances[NB_SENSORS];          // Array for the distance sensor readings
-    int max_sens;                       // Store highest sensor value
+    reset();
 
-    reset(); // Resetting the robot
+    // Wheel speeds
+    int msl = 0;
+    int msr = 0;
 
-    msl = 0;
-    msr = 0;
-    max_sens = 0;
-
-    // Forever
-    for (;;)
+    while (wb_robot_step(TIME_STEP) != -1)
     {
+        // TODO listen for PSO parameter update from supervisor
 
-        bmsl = 0;
-        bmsr = 0;
-        sum_sensors = 0;
-        max_sens = 0;
+        int bmsl = 0, bmsr = 0, sum_sensors = 0; // Braitenberg parameters
+        int max_sens = 0;                        // Store highest sensor value
+        int distances[NB_SENSORS];               // Array for the distance sensor readings
 
         /* Braitenberg */
-        for (i = 0; i < NB_SENSORS; i++)
+        for (int i = 0; i < NB_SENSORS; i++)
         {
             distances[i] = wb_distance_sensor_get_value(ds[i]); // Read sensor values
             sum_sensors += distances[i];                        // Add up sensor values
-            max_sens = max_sens > distances[i] ? max_sens
-                                               : distances[i]; // Check if new highest sensor value
+            max_sens = max(max_sens, distances[i]);             // Check if new highest sensor value
 
-            // Weighted sum of distance sensor values for Braitenburg vehicle
+            // Weighted sum of distance sensor values for Braitenberg vehicle
             bmsr += e_puck_matrix[i] * distances[i];
             bmsl += e_puck_matrix[i + NB_SENSORS] * distances[i];
         }
@@ -329,14 +304,12 @@ int main()
         // Adapt Braitenberg values (empirical tests)
         bmsl /= MIN_SENS;
         bmsr /= MIN_SENS;
-        //                   bmsl+=66; bmsr+=72;
 
         /* Send and get information */
 
-        send_ping(); // sending a ping to other robot, so they can measure their distance to this
-                     // robot
+        send_ping(); // Let other boids know where we are
 
-        process_received_ping_messages();
+        process_received_ping_messages(); // detect other boids
 
         // Compute self position
         prev_my_position[0] = my_position[0];
@@ -366,9 +339,10 @@ int main()
 
         // Set speed
         wb_differential_wheels_set_speed(msl, msr);
-
-        // Continue one step
-        wb_robot_step(TIME_STEP);
     }
+
+    wb_robot_cleanup();
+
+    return 0;
 }
 
