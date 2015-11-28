@@ -12,27 +12,27 @@
 
 using namespace std;
 
-#define NB_SENSORS 8              // Number of distance sensors
-#define MIN_SENS 350              // Minimum sensibility value
-#define MAX_SENS 4096             // Maximum sensibility value
-#define MAX_SPEED 800             // Maximum speed
-#define FLOCK_SIZE 5              // Size of flock
-#define TIME_STEP 64              // [ms] Length of time step
+const int NB_SENSORS = 8;              // Number of distance sensors
+const int MIN_SENS = 350;              // Minimum sensibility value
+const int MAX_SENS = 4096;             // Maximum sensibility value
+const int MAX_SPEED = 800;             // Maximum speed
+const int FLOCK_SIZE = 5;              // Size of flock
+const int TIME_STEP = 64;              // [ms] Length of time step
 
-#define AXLE_LENGTH 0.052         // Distance between wheels of robot (meters)
-#define SPEED_UNIT_RADS 0.00628   // Conversion factor from speed unit to radian per second
-#define WHEEL_RADIUS 0.0205       // Wheel radius (meters)
-#define DELTA_T (TIME_STEP / 1000.0) // Timestep (seconds)
+const double AXLE_LENGTH = 0.052;          // Distance between wheels of robot (meters)
+const double SPEED_UNIT_RADS = 0.00628;    // Conversion factor from speed unit to radian per second
+const double WHEEL_RADIUS = 0.0205;        // Wheel radius (meters)
+const double DELTA_T = TIME_STEP / 1000.0; // Timestep (seconds)
 
-#define RULE1_THRESHOLD 0.2      // Threshold to activate aggregation rule. default 0.20
-#define RULE1_WEIGHT 0.2         // Weight of aggregation rule. default 0.20
+const double RULE1_THRESHOLD = 0.2;      // Threshold to activate aggregation rule. default 0.20
+const double RULE1_WEIGHT = 0.2;         // Weight of aggregation rule. default 0.20
 
-#define RULE2_THRESHOLD 0.1      // Threshold to activate dispersion rule. default 0.1
-#define RULE2_WEIGHT 1.0         // Weight of dispersion rule. default 1.0
+const double RULE2_THRESHOLD = 0.1;      // Threshold to activate dispersion rule. default 0.1
+const double RULE2_WEIGHT = 1.0;         // Weight of dispersion rule. default 1.0
 
-#define RULE3_WEIGHT 0.01 // Weight of consistency rule. default 0.01
+const double RULE3_WEIGHT = 0.01; // Weight of consistency rule. default 0.01
 
-#define MIGRATION_WEIGHT 0.01 // Weight of attraction towards the common goal. default 0.01
+const double MIGRATION_WEIGHT = 0.01; // Weight of attraction towards the common goal. default 0.01
 
 // Braitenberg parameters for obstacle avoidance
 int e_puck_matrix[16] = {
@@ -45,14 +45,14 @@ WbDeviceTag emitter;           // Handle for the emitter node
 
 int robot_id_u, robot_id; // Unique and normalized (between 0 and FLOCK_SIZE-1) robot ID
 
-float relative_pos[FLOCK_SIZE][3];      // relative X, Z, Theta of all robots
-float prev_relative_pos[FLOCK_SIZE][3]; // Previous relative  X, Z, Theta values
-float my_position[3];                   // X, Z, Theta of the current robot
-float prev_my_position[3];           // X, Z, Theta of the current robot in the previous time step
-float speed[FLOCK_SIZE][2];          // Speeds calculated with Reynold's rules
-float relative_speed[FLOCK_SIZE][2]; // Speeds calculated with Reynold's rules
-int initialized[FLOCK_SIZE];         // != 0 if initial positions have been received
-float migr[2] = { 25, -25 };         // Migration vector
+double relative_pos[FLOCK_SIZE][3];      // relative X, Z, Theta of all robots
+double prev_relative_pos[FLOCK_SIZE][3]; // Previous relative  X, Z, Theta values
+double my_position[3];                   // X, Z, Theta of the current robot
+double prev_my_position[3];           // X, Z, Theta of the current robot in the previous time step
+double speed[FLOCK_SIZE][2];          // Speeds calculated with Reynold's rules
+double relative_speed[FLOCK_SIZE][2]; // Speeds calculated with Reynold's rules
+int initialized[FLOCK_SIZE];          // != 0 if initial positions have been received
+double migr[2] = { 25, -25 };         // Migration vector
 char const* robot_name;
 
 /*
@@ -108,17 +108,17 @@ void limit(int* number, int limit)
  */
 void update_self_motion(int msl, int msr)
 {
-    float theta = my_position[2];
+    double theta = my_position[2];
 
     // Compute deltas of the robot
-    float dr = msr * SPEED_UNIT_RADS * WHEEL_RADIUS * DELTA_T;
-    float dl = msl * SPEED_UNIT_RADS * WHEEL_RADIUS * DELTA_T;
-    float du = (dr + dl) / 2.0;
-    float dtheta = (dr - dl) / AXLE_LENGTH;
+    double dr = msr * SPEED_UNIT_RADS * WHEEL_RADIUS * DELTA_T;
+    double dl = msl * SPEED_UNIT_RADS * WHEEL_RADIUS * DELTA_T;
+    double du = (dr + dl) / 2.0;
+    double dtheta = (dr - dl) / AXLE_LENGTH;
 
     // Compute deltas in the environment
-    float dx = -du * sin(theta);
-    float dz = -du * cos(theta);
+    double dx = -du * sin(theta);
+    double dz = -du * cos(theta);
 
     // Update position
     my_position[0] += dx;
@@ -138,20 +138,20 @@ void update_self_motion(int msl, int msr)
 void compute_wheel_speeds(int* msl, int* msr)
 {
     // Compute wanted position from Reynold's speed and current location
-    float x = speed[robot_id][0] * cos(my_position[2]) -
-              speed[robot_id][1] * sin(my_position[2]); // x in robot coordinates
-    float z = -speed[robot_id][0] * sin(my_position[2]) -
-              speed[robot_id][1] * cos(my_position[2]); // z in robot coordinates
+    double x = speed[robot_id][0] * cos(my_position[2]) -
+               speed[robot_id][1] * sin(my_position[2]); // x in robot coordinates
+    double z = -speed[robot_id][0] * sin(my_position[2]) -
+               speed[robot_id][1] * cos(my_position[2]); // z in robot coordinates
 
-    float Ku = 0.2;                     // Forward control coefficient
-    float Kw = 10.0;                    // Rotational control coefficient
-    float range = sqrt(x * x + z * z); // Distance to the wanted position
-    float bearing = -atan2(x, z);       // Orientation of the wanted position
+    double Ku = 0.2;                     // Forward control coefficient
+    double Kw = 10.0;                    // Rotational control coefficient
+    double range = sqrt(x * x + z * z);  // Distance to the wanted position
+    double bearing = -atan2(x, z);       // Orientation of the wanted position
 
     // Compute forward control
-    float u = Ku * range * cos(bearing);
+    double u = Ku * range * cos(bearing);
     // Compute rotational control
-    float w = Kw * range * sin(bearing);
+    double w = Kw * range * sin(bearing);
 
     // Convert to wheel speeds!
     *msl = 50 * (u - AXLE_LENGTH * w / 2.0) / WHEEL_RADIUS;
@@ -166,12 +166,12 @@ void compute_wheel_speeds(int* msl, int* msr)
 
 void reynolds_rules()
 {
-    int i, j, k;                        // Loop counters
-    float rel_avg_loc[2] = { 0, 0 };    // Flock average positions
-    float rel_avg_speed[2] = { 0, 0 };  // Flock average speeds
-    float cohesion[2] = { 0, 0 };
-    float dispersion[2] = { 0, 0 };
-    float consistency[2] = { 0, 0 };
+    int i, j, k;                         // Loop counters
+    double rel_avg_loc[2] = { 0, 0 };    // Flock average positions
+    double rel_avg_speed[2] = { 0, 0 };  // Flock average speeds
+    double cohesion[2] = { 0, 0 };
+    double dispersion[2] = { 0, 0 };
+    double consistency[2] = { 0, 0 };
 
     /* Compute averages over the whole flock */
     for (j = 0; j < 2; j++)
@@ -275,7 +275,7 @@ void process_received_ping_messages(void)
         prev_relative_pos[other_robot_id][0] = relative_pos[other_robot_id][0];
         prev_relative_pos[other_robot_id][1] = relative_pos[other_robot_id][1];
 
-        relative_pos[other_robot_id][0] = range * cos(theta);                // relative x pos
+        relative_pos[other_robot_id][0] = range * cos(theta);          // relative x pos
         relative_pos[other_robot_id][1] = -range * sin(theta);         // relative y pos
 
         // printf("Robot %s, from robot %d, x: %g, y: %g, theta %g, my
