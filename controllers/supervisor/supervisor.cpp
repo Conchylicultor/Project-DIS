@@ -132,7 +132,7 @@ float computeFitnessStep(void)
 
 
 // -------------------
-// main functions
+// Main functions
 // -------------------
 
 /*
