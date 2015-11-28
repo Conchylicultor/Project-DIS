@@ -25,20 +25,30 @@ const double SPEED_UNIT_RADS = 0.00628;    // Conversion factor from speed unit 
 const double WHEEL_RADIUS = 0.0205;        // Wheel radius (meters)
 const double DELTA_T = TIME_STEP / 1000.0; // Timestep (seconds)
 
-const double RULE1_THRESHOLD = 0.2;      // Threshold to activate aggregation rule. default 0.20
-const double RULE1_WEIGHT = 0.2;         // Weight of aggregation rule. default 0.20
-
-const double RULE2_THRESHOLD = 0.1;      // Threshold to activate dispersion rule. default 0.1
-const double RULE2_WEIGHT = 1.0;         // Weight of dispersion rule. default 1.0
-
-const double RULE3_WEIGHT = 0.01; // Weight of consistency rule. default 0.01
-
-const double MIGRATION_WEIGHT = 0.01; // Weight of attraction towards the common goal. default 0.01
-
 // Braitenberg parameters for obstacle avoidance
 int e_puck_matrix[16] = {
     17, 29, 34, 10, 8, -38, -56, -76, -72, -58, -36, 8, 10, 36, 28, 18
 }; // for obstacle avoidance
+// TODO might be good to add this to PSO
+
+struct PSOSettings
+{
+    // Threshold to activate cohesion rule. This represents the minimal distance, per axis, that
+    // triggers attraction toward the center of mass of the flock.
+    double cohesionThreshold;
+
+    // Threshold to activate dispersion rule. This represents the minimal allowed distance between
+    // two boids before they try to avoid each other.
+    double separationThreshold;
+
+    // Weights of the different rules
+    double cohesionWeight;
+    double spearationWeight;
+    double alignmentWeight;
+    double migrationWeigth;
+};
+
+PSOSettings const DEFAULT_SETTINGS = { 0.2, 0.1, 0.2, 1.0, 0.01, 0.01 };
 
 WbDeviceTag ds[NB_SENSORS];    // Handle for the infrared distance sensors
 WbDeviceTag receiver;          // Handle for the receiver node
@@ -53,6 +63,7 @@ double prev_my_position[3];           // X, Z, Theta of the current robot in the
 double speed[FLOCK_SIZE][2];          // Speeds calculated with Reynold's rules
 double relative_speed[FLOCK_SIZE][2]; // Speeds calculated with Reynold's rules
 double migr[2] = { 25, -25 };         // Migration vector
+// TODO do we really want this migr vector?
 char const* robot_name;
 
 /*
@@ -137,6 +148,7 @@ void compute_wheel_speeds(int* msl, int* msr)
     double z = -speed[robot_id][0] * sin(my_position[2]) -
                speed[robot_id][1] * cos(my_position[2]); // z in robot coordinates
 
+    // TODO should those coefficients be part of PSO?
     double Ku = 0.2;                     // Forward control coefficient
     double Kw = 10.0;                    // Rotational control coefficient
     double range = sqrt(x * x + z * z);  // Distance to the wanted position
@@ -158,7 +170,7 @@ void compute_wheel_speeds(int* msl, int* msr)
  *  Update speed according to Reynold's rules
  */
 
-void reynolds_rules()
+void reynolds_rules(PSOSettings const& settings)
 {
     /* Compute averages over the whole flock */
     double rel_avg_loc[2] = { 0, 0 };    // Flock average positions
@@ -181,7 +193,7 @@ void reynolds_rules()
     for (int j = 0; j < 2; j++)
     {
         // If center of mass is too far
-        if (abs(rel_avg_loc[j]) > RULE1_THRESHOLD)
+        if (abs(rel_avg_loc[j]) > settings.cohesionThreshold)
         {
             cohesion[j] = rel_avg_loc[j]; // Relative distance to the center of the swarm
         }
@@ -194,7 +206,8 @@ void reynolds_rules()
         if (k != robot_id) // Loop on flockmates only
         {
             // If neighbor k is too close
-            if (pow(relative_pos[k][0], 2) + pow(relative_pos[k][1], 2) < RULE2_THRESHOLD)
+            if (pow(relative_pos[k][0], 2) + pow(relative_pos[k][1], 2) <
+                settings.separationThreshold)
             {
                 for (int j = 0; j < 2; j++)
                 {
@@ -214,10 +227,10 @@ void reynolds_rules()
     // aggregation of all behaviors with relative influence determined by weights
     for (int j = 0; j < 2; j++)
     {
-        speed[robot_id][j] = cohesion[j] * RULE1_WEIGHT;
-        speed[robot_id][j] += dispersion[j] * RULE2_WEIGHT;
-        speed[robot_id][j] += consistency[j] * RULE3_WEIGHT;
-        speed[robot_id][j] += (migr[j] - my_position[j]) * MIGRATION_WEIGHT;
+        speed[robot_id][j] = cohesion[j] * settings.cohesionWeight;
+        speed[robot_id][j] += dispersion[j] * settings.spearationWeight;
+        speed[robot_id][j] += consistency[j] * settings.alignmentWeight;
+        speed[robot_id][j] += (migr[j] - my_position[j]) * settings.migrationWeigth;
     }
 }
 
@@ -277,6 +290,8 @@ int main()
 {
     reset();
 
+    PSOSettings settings = DEFAULT_SETTINGS; // TODO use settings send from supervisor
+
     // Wheel speeds
     int msl = 0;
     int msr = 0;
@@ -284,6 +299,9 @@ int main()
     while (wb_robot_step(TIME_STEP) != -1)
     {
         // TODO listen for PSO parameter update from supervisor
+        // IDEA: if needed using a special receiver, we wait for the PSO settings
+        // and the simulation time from the supervisor. Then, we live as usual and
+        // when time is out we wait for supervisor again.
 
         int bmsl = 0, bmsr = 0, sum_sensors = 0; // Braitenberg parameters
         int max_sens = 0;                        // Store highest sensor value
@@ -321,7 +339,7 @@ int main()
         speed[robot_id][1] = (1 / DELTA_T) * (my_position[1] - prev_my_position[1]);
 
         // Reynold's rules with all previous info (updates the speed[][] table)
-        reynolds_rules();
+        reynolds_rules(settings);
 
         // Compute wheels speed from reynold's speed
         compute_wheel_speeds(&msl, &msr);
