@@ -14,6 +14,12 @@
 using namespace std;
 
 
+// Some remarks:
+// Probably only works in a noise free environement
+// Works if all the robots of the flock are within the communication area (but this 
+// point could be corrected easily if the robots only align of its neigbours)
+
+
 // Global parametters
 static const int FLOCK_SIZE = 5; // Number of robot in each flock (WARNING: Adapt to the number of robot)
 static const int TIME_STEP = 64; // [ms] Length of time step
@@ -50,6 +56,34 @@ struct Vec2
         return *this;
     }
     
+    const float &operator[](unsigned int index) const
+    {
+        if (index == 0)
+        {
+            return x;
+        }
+        if (index == 1)
+        {
+            return y;
+        }
+        cout << "ERROR: Wrong vector index: " << index << endl;
+        throw std::out_of_range("Invalid index");
+    }
+    
+    float &operator[](unsigned int index)
+    {
+        if (index == 0)
+        {
+            return x;
+        }
+        if (index == 1)
+        {
+            return y;
+        }
+        cout << "ERROR: Wrong vector index: " << index << endl;
+        throw std::out_of_range("Invalid index");
+    }
+    
     Vec2 operator-(const Vec2& other)
     {
         return Vec2(x - other.x,
@@ -73,28 +107,35 @@ std::ostream& operator<<(std::ostream& out, Vec2 const& p)
 
 Vec2 myPosition(0.0f,0.0f);
 Vec2 myPrevPosition(0.0f,0.0f);
+Vec2 mySpeed(0.0f,0.0f);
 float myTheta = 0.0f; // TODO we could use a compass instead
 
-Vec2 neighboursPos[FLOCK_SIZE];
+Vec2 neighboursPos[FLOCK_SIZE]; // Relative positions of the neighbours
 Vec2 neighboursPrevPos[FLOCK_SIZE];
 Vec2 neighboursRelativeSpeed[FLOCK_SIZE];
+
+Vec2 migrationVec(20.0f,-20.0f); // TODO: Change our migration vector
 
 // -------------------
 // Obstacle avoidance functions
 // -------------------
 
+// Braitenberg parameters
+const int MIN_SENS = 350; // Minimum sensibility value
+const int MAX_SENS = 4096; // Maximum sensibility value
+const int weightMatrix[2][NB_SENSORS] = {{-72,-58,-36,8,10,36,28,18},
+                                         {18,28,36,10,8,-36,-58,-72}}; // Braitenberg weight
+
 /*
  * Try avoiding obstacles
  */
-void braitenbergObstacle(int wheelSpeed[2])
+void braitenbergObstacle(int wheelSpeed[2], bool &thresholdSpeedInstinct, int &maxSensorValue)
 {
-  // Parameters
-  static int MIN_SENS = 350;
-  static int weightMatrix[2][NB_SENSORS] = {{-72,-58,-36,8,10,36,28,18},
-                                            {18,28,36,10,8,-36,-58,-72}}; // Braitenberg weight
-  int distance = 0;
-  
   // Reinitialisation
+  int distance = 0;
+  int sumSensors = 0;
+  maxSensorValue = 0;
+  
   wheelSpeed[0] = 0;
   wheelSpeed[1] = 0;
   
@@ -106,11 +147,111 @@ void braitenbergObstacle(int wheelSpeed[2])
     // Weighted sum of distance sensor values for Braitenberg vehicle
     wheelSpeed[0] += weightMatrix[0][i] * distance; // Left
     wheelSpeed[1] += weightMatrix[1][i] * distance; // Right
+    
+    // Update the maximum sensor value and sumSensors
+    if(distance > maxSensorValue)
+    {
+      maxSensorValue = distance;
+    }
+    sumSensors += distance;
   }
   
   // Adapt the speed
   wheelSpeed[0] /= MIN_SENS;
   wheelSpeed[1] /= MIN_SENS;
+  
+  // Define the speed instinct
+  if (sumSensors > NB_SENSORS*MIN_SENS)
+  {
+    thresholdSpeedInstinct = true;
+  }
+  else
+  {
+    thresholdSpeedInstinct = false;
+  }
+}
+
+// -------------------
+// Wheels related functions
+// -------------------
+
+// Parameters of the wheels
+const float AXLE_LENGTH = 0.052; // Distance between wheels of robot (meters)
+const float SPEED_UNIT_RADS = 0.00628; // Conversion factor from speed unit to radian per second
+const float WHEEL_RADIUS = 0.0205; // Wheel radius (meters)
+
+const int MAX_WHEEL_SPEED = 800; // Maximum wheel speed
+
+/*
+ * Update myPosition using the wheel speed
+ */
+void updateCurrentPosition(const int wheelSpeed[2])
+{
+  float theta = myTheta;
+  
+  // Compute deltas of the robot
+  float dl = (float)wheelSpeed[0] * SPEED_UNIT_RADS * WHEEL_RADIUS * DELTA_T;
+  float dr = (float)wheelSpeed[1] * SPEED_UNIT_RADS * WHEEL_RADIUS * DELTA_T;
+  float du = (dr + dl)/2.0;
+  float dtheta = (dr - dl)/AXLE_LENGTH;
+  
+  // Compute deltas in the environment
+  float dx = -du * std::sin(theta);
+  float dz = -du * std::cos(theta);
+  
+  // Update position
+  myPosition[0] += dx;
+  myPosition[1] += dz;
+  myTheta += dtheta;
+  
+  // Keep orientation within 0, 2pi
+  if (myTheta > 2*M_PI)
+  {
+    myTheta -= 2.0*M_PI;
+  }
+  
+  if (myTheta < 0)
+  {
+    myTheta += 2.0*M_PI;
+  }
+}
+
+/*
+ * Keep given int number within interval {-limit, limit}
+ */
+void checkLimit(int &number, int limit)
+{
+  if (number > limit)
+    number = limit;
+  if (number < -limit)
+    number = -limit;
+}
+
+/*
+ * Update the wheel speed from the desired robot speed and orientation
+ */
+void computeWheelSpeeds(int wheelSpeed[2], const Vec2 &robotSpeed, float robotOrientation)
+{
+  // Compute wanted position from Reynold's speed and current location
+  float x =  robotSpeed[0]*std::cos(robotOrientation) - robotSpeed[1]*std::sin(robotOrientation); // x in robot coordinates
+  float z = -robotSpeed[0]*std::sin(robotOrientation) - robotSpeed[1]*std::cos(robotOrientation); // z in robot coordinates
+  
+  float Ku = 0.2;   // Forward control coefficient
+  float Kw = 10.0;  // Rotational control coefficient
+  float range = sqrtf(x*x + z*z);	// Distance to the wanted position
+  float bearing = -atan2(x, z);	// Orientation of the wanted position
+  
+  // Compute forward control
+  float u = Ku*range*cosf(bearing);
+  // Compute rotational control
+  float w = Kw*range*sinf(bearing);
+  
+  // Convert to wheel speeds!
+  wheelSpeed[0] = 50*(u - AXLE_LENGTH*w/2.0) / WHEEL_RADIUS;
+  wheelSpeed[1] = 50*(u + AXLE_LENGTH*w/2.0) / WHEEL_RADIUS;
+  
+  checkLimit(wheelSpeed[0], MAX_WHEEL_SPEED);
+  checkLimit(wheelSpeed[1], MAX_WHEEL_SPEED);
 }
 
 // -------------------
@@ -175,6 +316,120 @@ void pong()
 }
 
 // -------------------
+// Reynolds functions
+// -------------------
+
+/*
+ * Struct which contain the parametters to obtimize
+ */
+struct PSOParams
+{
+    // Defaults settings
+    PSOParams() : 
+        cohesionThreshold(0.2),
+        cohesionWeight(0.5),
+        separationThreshold(0.1),
+        spearationWeight(1.0),
+        alignmentWeight(0.01),
+        migrationWeigth(0.01)
+    {}
+    
+    // Agregation
+    
+    // Threshold to activate cohesion rule. This represents the minimal distance, per axis, that
+    // triggers attraction toward the center of mass of the flock.
+    float cohesionThreshold; // TODO: Why is there a cohesion threshold ???
+    float cohesionWeight;
+
+    // Separation
+    
+    // Threshold to activate dispersion rule. This represents the minimal allowed distance between
+    // two boids before they try to avoid each other.
+    float separationThreshold; // TODO: We don't want to obtimize this param, do we ???
+    float spearationWeight;
+
+    // Alignment
+    float alignmentWeight;
+    
+    // Migration
+    float migrationWeigth;
+};
+
+/*
+ * Compute the disired vector speed using reynolds rules
+ */
+void reynoldsRules(const PSOParams &params)
+{
+  int i, j, k;
+  
+  float rel_avg_loc[2] = {0,0};	// Flock average positions
+  float rel_avg_speed[2] = {0,0};	// Flock average speeds
+  
+  float cohesion[2] = {0,0};
+  float dispersion[2] = {0,0};
+  float consistency[2] = {0,0};
+  
+  // Compute averages over the whole flock
+  for (j=0 ; j<2 ; j++)
+  {
+    for(i=0 ; i<FLOCK_SIZE ; i++)
+    {
+      // Don't consider yourself for the average
+      if (i != robotId) 
+      {
+        rel_avg_speed[j] += neighboursRelativeSpeed[i][j];
+        rel_avg_loc[j] += neighboursPos[i][j];
+      }
+    }
+    // WHY REYNOLDS2.C DON'T DIVIDE BY THE NUMBER OF RODOTS (IS IT REALLY AN AVERAGE ???) ??? << NOT THAT 
+    // IMPORTANT BECAUSE WE CAN CORRECT IT WITH THE WEIGHTS BUT STILL...
+    rel_avg_speed[j] /= (FLOCK_SIZE-1);
+    rel_avg_loc[j] /= (FLOCK_SIZE-1); // -1 because we don't take ourself in account
+  }
+  
+  // Rule 1 - Aggregation/Cohesion: move towards the center of mass
+  for (j=0;j<2;j++)
+  {
+    // If center of mass is too far
+    if (fabs(rel_avg_loc[j]> params.cohesionThreshold))
+    {
+      cohesion[j] = rel_avg_loc[j] ;  // Relative distance to the center of the swarm
+    }
+  }
+  
+  // Rule 2 - Dispersion/Separation: keep far enough from flockmates
+  for (k=0;k<FLOCK_SIZE;k++)
+  {
+    if (k != robotId) // Loop on flockmates only
+    {
+      // If neighbor k is too close
+      if (pow(neighboursPos[k][0],2)+pow(neighboursPos[k][1],2) < params.separationThreshold)
+      {
+        for (j=0;j<2;j++)
+        {
+          dispersion[j] -= neighboursPos[k][j]; // Relative distance to k
+        }
+      }
+    }
+  }
+  
+  // Rule 3 - Consistency/Alignment: match the speeds of flockmates
+  for (j=0;j<2;j++)
+  {
+    consistency[j] =  rel_avg_speed[j]; // difference speed to the average
+  }
+  
+  // aggregation of all behaviors with relative influence determined by weights
+  for (j=0;j<2;j++)
+  {
+    mySpeed[j] = cohesion[j] * params.cohesionWeight;
+    mySpeed[j] +=  dispersion[j] * params.spearationWeight;
+    mySpeed[j] +=  consistency[j] * params.alignmentWeight;
+    mySpeed[j] += (migrationVec[j]-myPosition[j]) * params.migrationWeigth;
+  }
+}
+
+// -------------------
 // Main functions
 // -------------------
 
@@ -212,8 +467,13 @@ int main(){
   // Initialize the robot
   reset();
   
+  PSOParams psoParams; // Default parametters TODO: Send from supervisor
+  
   int wheelSpeed[2] = {0,0}; // Left and right wheel speed
   int wheelSpeedBraitenberg[2] = {0,0}; // Left and right wheel speed
+  
+  bool thresholdSpeedInstinct = false;
+  int maxSensorValue = 0;
   
   // Main loop
   while(true)
@@ -221,19 +481,29 @@ int main(){
     // Reinitialization
     
     // Braitenberg obstacle avoidance
-    braitenbergObstacle(wheelSpeedBraitenberg);
+    braitenbergObstacle(wheelSpeedBraitenberg, thresholdSpeedInstinct, maxSensorValue);
     
     // Emission/reception between flock members
     ping(); // Indicate our presence
     pong(); // Get informations from other robots
     
+    // Update position
+    myPrevPosition = myPosition;
+    updateCurrentPosition(wheelSpeed);
+    mySpeed = (myPosition - myPrevPosition) / DELTA_T; // WHY IS IT SET IF WE COMPUTE MY SPEED IN THE REYNOLDS FUNCTION
+    
     // Use received information for the reynolds behavior
+    reynoldsRules(psoParams);
     
-    // Compute speed
-    wheelSpeed[0] = 300;
-    wheelSpeed[1] = 300;
+    // Compute the wheels speed
+    computeWheelSpeeds(wheelSpeed, mySpeed, myTheta); // Use the desired speed and orientation to compute the wheelSpeed
     
-    // Add Braitenberg
+    // Add Braitenberg (weighted with reynolds)
+    if(thresholdSpeedInstinct)
+    {
+      wheelSpeed[0] -= wheelSpeed[0] * maxSensorValue / (2*MAX_SENS);
+      wheelSpeed[1] -= wheelSpeed[1] * maxSensorValue / (2*MAX_SENS);
+    }
     wheelSpeed[0] += wheelSpeedBraitenberg[0];
     wheelSpeed[1] += wheelSpeedBraitenberg[1];
     
