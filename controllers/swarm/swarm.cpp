@@ -17,7 +17,7 @@ using namespace std;
 // Global parametters
 static const int FLOCK_SIZE = 5; // Number of robot in each flock (WARNING: Adapt to the number of robot)
 static const int TIME_STEP = 64; // [ms] Length of time step
-static const float DELTA_T = TIME_STEP/1000.0f; // [ms] Length of time step
+static const float DELTA_T = TIME_STEP/1000.0f; // [s] Length of time step
 
 string robotName;
 int robotIdGlobal = 0; // World id
@@ -43,20 +43,20 @@ struct Vec2
     Vec2() : x(0.0f), y(0.0f) {}
     Vec2(float argX, float argY) : x(argX), y(argY) {}
     
-    Vec2& operator=(const Vec2& other) // copy assignment
+    Vec2& operator=(const Vec2& other)
     {
         x = other.x;
         y = other.y;
         return *this;
     }
     
-    Vec2 operator-(const Vec2& other) // copy assignment
+    Vec2 operator-(const Vec2& other)
     {
         return Vec2(x - other.x,
                     y - other.y);
     }
     
-    Vec2 operator/(float factor) // copy assignment
+    Vec2 operator/(float factor)
     {
         return Vec2(x/factor,
                     y/factor);
@@ -73,7 +73,7 @@ std::ostream& operator<<(std::ostream& out, Vec2 const& p)
 
 Vec2 myPosition(0.0f,0.0f);
 Vec2 myPrevPosition(0.0f,0.0f);
-float myTheta = 0.0f;
+float myTheta = 0.0f; // TODO we could use a compass instead
 
 Vec2 neighboursPos[FLOCK_SIZE];
 Vec2 neighboursPrevPos[FLOCK_SIZE];
@@ -88,7 +88,7 @@ Vec2 neighboursRelativeSpeed[FLOCK_SIZE];
  */
 void braitenbergObstacle(int wheelSpeed[2])
 {
-  // Parametters
+  // Parameters
   static int MIN_SENS = 350;
   static int weightMatrix[2][NB_SENSORS] = {{-72,-58,-36,8,10,36,28,18},
                                             {18,28,36,10,8,-36,-58,-72}}; // Braitenberg weight
@@ -98,12 +98,12 @@ void braitenbergObstacle(int wheelSpeed[2])
   wheelSpeed[0] = 0;
   wheelSpeed[1] = 0;
   
-  // Compute the ponderate behavior
+  // Compute the weighted behavior
   for(int i=0 ; i<NB_SENSORS ; i++)
   {
     distance = wb_distance_sensor_get_value(ds[i]); //Read sensor values
     
-    // Weighted sum of distance sensor values for Braitenburg vehicle
+    // Weighted sum of distance sensor values for Braitenberg vehicle
     wheelSpeed[0] += weightMatrix[0][i] * distance; // Left
     wheelSpeed[1] += weightMatrix[1][i] * distance; // Right
   }
@@ -118,16 +118,16 @@ void braitenbergObstacle(int wheelSpeed[2])
 // -------------------
 
 /*
- * Send a ping in order to let other boids know where this robot is
+ * Send a ping in order to let other robots know where this robot is
  */
 void ping()
 {
   string message = std::to_string(flockId) + "_" + std::to_string(robotId); // Send our id (and flock id)
-  wb_emitter_send(emitter, message.c_str(), message.size()+1);
+  wb_emitter_send(emitter, message.c_str(), message.size()+1); // We add +1 for the '\0' caractere
 }
 
 /*
- * Receive messages from other and extract interresting informations
+ * Receive messages from other and extract interesting informations
  */
 void pong()
 {
@@ -167,10 +167,10 @@ void pong()
     neighboursRelativeSpeed[receivedRobotId] = (neighboursPos[receivedRobotId] - neighboursPrevPos[receivedRobotId])/DELTA_T;
     
     //cout << "-----------------------------------" << endl;
-    //cout << receivedFlockId << " " << receivedRobotId << " : " << endl;
-    //cout << neighboursPrevPos[receivedRobotId] << endl;
-    //cout << neighboursPos[receivedRobotId] << endl;
-    //cout << neighboursRelativeSpeed[receivedRobotId] << endl;
+    //cout << "Robot " << receivedFlockId << " from flock " << receivedRobotId << " : " << endl;
+    //cout << "Prev: " << neighboursPrevPos[receivedRobotId] << endl;
+    //cout << "Current: " << neighboursPos[receivedRobotId] << endl;
+    //cout << "Vel: " << neighboursRelativeSpeed[receivedRobotId] << endl;
   }
 }
 
@@ -226,6 +226,8 @@ int main(){
     // Emission/reception between flock members
     ping(); // Indicate our presence
     pong(); // Get informations from other robots
+    
+    // Use received information for the reynolds behavior
     
     // Compute speed
     wheelSpeed[0] = 300;
