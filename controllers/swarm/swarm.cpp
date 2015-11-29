@@ -59,13 +59,9 @@ struct Vec2
     const float &operator[](unsigned int index) const
     {
         if (index == 0)
-        {
             return x;
-        }
         if (index == 1)
-        {
             return y;
-        }
         cout << "ERROR: Wrong vector index: " << index << endl;
         throw std::out_of_range("Invalid index");
     }
@@ -73,15 +69,39 @@ struct Vec2
     float &operator[](unsigned int index)
     {
         if (index == 0)
-        {
             return x;
-        }
         if (index == 1)
-        {
             return y;
-        }
         cout << "ERROR: Wrong vector index: " << index << endl;
         throw std::out_of_range("Invalid index");
+    }
+    
+    Vec2& operator*=(const float s)
+    {
+        x *= s;
+        y *= s;
+        return *this;
+    }
+    
+    Vec2& operator/=(const float s)
+    {
+        x /= s;
+        y /= s;
+        return *this;
+    }
+    
+    Vec2& operator-=(const Vec2& v)
+    {
+        x -= v.x;
+        y -= v.y;
+        return *this;
+    }
+    
+    Vec2& operator+=(const Vec2& v)
+    {
+        x += v.x;
+        y += v.y;
+        return *this;
     }
     
     Vec2 operator-(const Vec2& other)
@@ -96,9 +116,20 @@ struct Vec2
                     y/factor);
     }
     
+    Vec2 operator*(float factor)
+    {
+        return Vec2(x*factor,
+                    y*factor);
+    }
+    
     float x;
     float y;
 };
+
+float norm(const Vec2 &v)
+{
+  return std::sqrt(v[0]*v[0] + v[1]*v[1]);
+}
 
 std::ostream& operator<<(std::ostream& out, Vec2 const& p)
 {
@@ -359,74 +390,60 @@ struct PSOParams
  * Compute the disired vector speed using reynolds rules
  */
 void reynoldsRules(const PSOParams &params)
-{
-  int i, j, k;
+{  
+  Vec2 relAvgLoc;	// Flock average positions
+  Vec2 relAvgSpeed;	// Flock average speeds
   
-  float rel_avg_loc[2] = {0,0};	// Flock average positions
-  float rel_avg_speed[2] = {0,0};	// Flock average speeds
-  
-  float cohesion[2] = {0,0};
-  float dispersion[2] = {0,0};
-  float consistency[2] = {0,0};
+  Vec2 cohesion;
+  Vec2 dispersion;
+  Vec2 consistency;
   
   // Compute averages over the whole flock
-  for (j=0 ; j<2 ; j++)
+  for(int i=0 ; i<FLOCK_SIZE ; i++)
   {
-    for(i=0 ; i<FLOCK_SIZE ; i++)
+    // Don't consider yourself for the average
+    if (i != robotId) 
     {
-      // Don't consider yourself for the average
-      if (i != robotId) 
-      {
-        rel_avg_speed[j] += neighboursRelativeSpeed[i][j];
-        rel_avg_loc[j] += neighboursPos[i][j];
-      }
+      relAvgSpeed += neighboursRelativeSpeed[i];
+      relAvgLoc += neighboursPos[i];
     }
-    // WHY REYNOLDS2.C DON'T DIVIDE BY THE NUMBER OF RODOTS (IS IT REALLY AN AVERAGE ???) ??? << NOT THAT 
-    // IMPORTANT BECAUSE WE CAN CORRECT IT WITH THE WEIGHTS BUT STILL...
-    rel_avg_speed[j] /= (FLOCK_SIZE-1);
-    rel_avg_loc[j] /= (FLOCK_SIZE-1); // -1 because we don't take ourself in account
   }
+  // WHY REYNOLDS2.C DON'T DIVIDE BY THE NUMBER OF RODOTS (IS IT REALLY AN 
+  // AVERAGE ???) ??? << NOT THAT IMPORTANT BECAUSE WE CAN CORRECT IT
+  // WITH THE WEIGHTS BUT STILL...
+  relAvgSpeed /= (FLOCK_SIZE-1);
+  relAvgLoc /= (FLOCK_SIZE-1); // -1 because we don't take ourself in account
+  
   
   // Rule 1 - Aggregation/Cohesion: move towards the center of mass
-  for (j=0;j<2;j++)
+  
+  if (norm(relAvgLoc) > params.cohesionThreshold) // If center of mass is too far
   {
-    // If center of mass is too far
-    if (fabs(rel_avg_loc[j]> params.cohesionThreshold))
-    {
-      cohesion[j] = rel_avg_loc[j] ;  // Relative distance to the center of the swarm
-    }
+    cohesion = relAvgLoc ;  // Relative distance to the center of the swarm
   }
   
   // Rule 2 - Dispersion/Separation: keep far enough from flockmates
-  for (k=0;k<FLOCK_SIZE;k++)
+  
+  for (int i=0 ; i<FLOCK_SIZE; i++)
   {
-    if (k != robotId) // Loop on flockmates only
+    if (i != robotId) // Loop on flockmates only
     {
       // If neighbor k is too close
-      if (pow(neighboursPos[k][0],2)+pow(neighboursPos[k][1],2) < params.separationThreshold)
+      if (pow(neighboursPos[i][0],2)+pow(neighboursPos[i][1],2) < params.separationThreshold)
       {
-        for (j=0;j<2;j++)
-        {
-          dispersion[j] -= neighboursPos[k][j]; // Relative distance to k
-        }
+        dispersion -= neighboursPos[i]; // Relative distance to k
       }
     }
   }
   
   // Rule 3 - Consistency/Alignment: match the speeds of flockmates
-  for (j=0;j<2;j++)
-  {
-    consistency[j] =  rel_avg_speed[j]; // difference speed to the average
-  }
+  consistency =  relAvgSpeed; // difference speed to the average
   
-  // aggregation of all behaviors with relative influence determined by weights
-  for (j=0;j<2;j++)
-  {
-    mySpeed[j] = cohesion[j] * params.cohesionWeight;
-    mySpeed[j] +=  dispersion[j] * params.spearationWeight;
-    mySpeed[j] +=  consistency[j] * params.alignmentWeight;
-    mySpeed[j] += (migrationVec[j]-myPosition[j]) * params.migrationWeigth;
-  }
+  // Aggregation of all behaviors with relative influence determined by weights
+  mySpeed = cohesion * params.cohesionWeight;
+  mySpeed +=  dispersion * params.spearationWeight;
+  mySpeed +=  consistency * params.alignmentWeight;
+  mySpeed += (migrationVec-myPosition) * params.migrationWeigth; // TODO: Change the migration policy ??
 }
 
 // -------------------
