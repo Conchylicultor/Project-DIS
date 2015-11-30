@@ -1,4 +1,4 @@
-#VRML_SIM V8.2.1 utf8
+#VRML_SIM V8.3.0 utf8
 WorldInfo {
   info [
     "Description"
@@ -227,7 +227,7 @@ Supervisor {
       channel 1
     }
   ]
-  name "super0"
+  name "super1"
   controller "supervisor"
 }
 Supervisor {
@@ -236,7 +236,7 @@ Supervisor {
       channel 2
     }
   ]
-  name "super1"
+  name "super2"
   controller "supervisor"
 }
 DEF epuck0 DifferentialWheels {
