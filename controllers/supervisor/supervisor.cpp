@@ -9,7 +9,10 @@
 
 using namespace std;
 
-//#define DEBUG_PRINT
+// Print information
+#define PRINT_INFO if(printIter == 0)
+const int frequencyPrint = 100;
+int printIter = 0;
 
 
 // Fitness weights
@@ -121,11 +124,12 @@ float computeFitnessStep(void)
   float cohesion = getCohesion();
   float velocity = getVelocity();
 
-#ifdef DEBUG_PRINT
-  cout << "o:" << orientation << endl;
-  cout << "c:" << cohesion << endl;
-  cout << "v:" << velocity << endl;
-#endif
+  PRINT_INFO
+  {
+    cout << "o:" << orientation << endl;
+    cout << "c:" << cohesion << endl;
+    cout << "v:" << velocity << endl;
+  }
 
   // Return normalized and weighted fitness
   return (WEIGHT_ORIENTATION * orientation +
@@ -211,7 +215,7 @@ int main(int argc, char *args[])
       fitnessGlobal += fitnessInstant;
 
       // Plot every x timesteps
-      if(nbTimestep % 1000 == 0)
+      PRINT_INFO
       {
         cout << "Performances:" << endl;
         cout << fitnessInstant << " (instant)" << endl;
@@ -226,12 +230,7 @@ int main(int argc, char *args[])
     }
 
     nbTimestep++;
-
-    // Limit
-    //if(nbTimestep > 2000)
-    //{
-    //    finished = true;
-    //}
+    printIter = nbTimestep % frequencyPrint; // Update the printing iterator
 
     wb_robot_step(64);
   }
