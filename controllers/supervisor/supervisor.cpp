@@ -144,10 +144,9 @@ float computeFitnessStep(void)
   }
 
   // Return normalized and weighted fitness
-  return (WEIGHT_ORIENTATION * orientation +
-          WEIGHT_COHESION * cohesion +
-          WEIGHT_VELOCITY * velocity) /
-         (WEIGHT_ORIENTATION + WEIGHT_COHESION + WEIGHT_VELOCITY); // Wrong: DO MULTIPLICATION INSTEAD OF ADDITION ?
+  return std::pow(orientation, WEIGHT_ORIENTATION) *
+         std::pow(cohesion, WEIGHT_COHESION) *
+         std::pow(velocity, WEIGHT_VELOCITY); // Wrong: DO MULTIPLICATION INSTEAD OF ADDITION ?
 }
 
 
