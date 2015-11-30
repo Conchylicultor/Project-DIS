@@ -10,7 +10,7 @@
 struct Vec2
 {
     Vec2() : x(0.0f), y(0.0f) {}
-    Vec2(float argX, float argY) : x(argX), y(argY) {}
+    Vec2(double argX, double argY) : x(argX), y(argY) {}
     
     Vec2& operator=(const Vec2& other)
     {
@@ -19,7 +19,7 @@ struct Vec2
         return *this;
     }
     
-    const float &operator[](unsigned int index) const
+    const double &operator[](unsigned int index) const
     {
         if (index == 0)
             return x;
@@ -29,7 +29,7 @@ struct Vec2
         throw std::out_of_range("Invalid index");
     }
     
-    float &operator[](unsigned int index)
+    double &operator[](unsigned int index)
     {
         if (index == 0)
             return x;
@@ -39,14 +39,14 @@ struct Vec2
         throw std::out_of_range("Invalid index");
     }
     
-    Vec2& operator*=(const float s)
+    Vec2& operator*=(const double s)
     {
         x *= s;
         y *= s;
         return *this;
     }
     
-    Vec2& operator/=(const float s)
+    Vec2& operator/=(const double s)
     {
         x /= s;
         y /= s;
@@ -73,23 +73,23 @@ struct Vec2
                     y - other.y);
     }
     
-    Vec2 operator/(float factor)
+    Vec2 operator/(double factor)
     {
         return Vec2(x/factor,
                     y/factor);
     }
     
-    Vec2 operator*(float factor)
+    Vec2 operator*(double factor)
     {
         return Vec2(x*factor,
                     y*factor);
     }
     
-    float x;
-    float y;
+    double x;
+    double y;
 };
 
-float norm(const Vec2 &v)
+double norm(const Vec2 &v)
 {
   return std::sqrt(v[0]*v[0] + v[1]*v[1]);
 }

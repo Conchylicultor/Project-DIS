@@ -25,7 +25,7 @@ using namespace std;
 // Global parametters
 static const int FLOCK_SIZE = 5; // Number of robot in each flock (WARNING: Adapt to the number of robot)
 static const int TIME_STEP = 64; // [ms] Length of time step
-static const float DELTA_T = TIME_STEP/1000.0f; // [s] Length of time step
+static const double DELTA_T = TIME_STEP/1000.0f; // [s] Length of time step
 
 string robotName;
 int robotIdGlobal = 0; // World id
@@ -46,7 +46,7 @@ WbDeviceTag emitter;		// Handle for the emitter node
 Vec2 myPosition(0.0f,0.0f);
 Vec2 myPrevPosition(0.0f,0.0f);
 Vec2 mySpeed(0.0f,0.0f);
-float myTheta = 0.0f; // TODO we could use a compass instead
+double myTheta = 0.0f; // TODO we could use a compass instead
 
 Vec2 neighboursPos[FLOCK_SIZE]; // Relative positions of the neighbours
 Vec2 neighboursPrevPos[FLOCK_SIZE];
@@ -114,9 +114,9 @@ void braitenbergObstacle(int wheelSpeed[2], bool &thresholdSpeedInstinct, int &m
 // -------------------
 
 // Parameters of the wheels
-const float AXLE_LENGTH = 0.052; // Distance between wheels of robot (meters)
-const float SPEED_UNIT_RADS = 0.00628; // Conversion factor from speed unit to radian per second
-const float WHEEL_RADIUS = 0.0205; // Wheel radius (meters)
+const double AXLE_LENGTH = 0.052; // Distance between wheels of robot (meters)
+const double SPEED_UNIT_RADS = 0.00628; // Conversion factor from speed unit to radian per second
+const double WHEEL_RADIUS = 0.0205; // Wheel radius (meters)
 
 const int MAX_WHEEL_SPEED = 800; // Maximum wheel speed
 
@@ -125,17 +125,17 @@ const int MAX_WHEEL_SPEED = 800; // Maximum wheel speed
  */
 void updateCurrentPosition(const int wheelSpeed[2])
 {
-  float theta = myTheta;
+  double theta = myTheta;
   
   // Compute deltas of the robot
-  float dl = (float)wheelSpeed[0] * SPEED_UNIT_RADS * WHEEL_RADIUS * DELTA_T;
-  float dr = (float)wheelSpeed[1] * SPEED_UNIT_RADS * WHEEL_RADIUS * DELTA_T;
-  float du = (dr + dl)/2.0;
-  float dtheta = (dr - dl)/AXLE_LENGTH;
+  double dl = (double)wheelSpeed[0] * SPEED_UNIT_RADS * WHEEL_RADIUS * DELTA_T;
+  double dr = (double)wheelSpeed[1] * SPEED_UNIT_RADS * WHEEL_RADIUS * DELTA_T;
+  double du = (dr + dl)/2.0;
+  double dtheta = (dr - dl)/AXLE_LENGTH;
   
   // Compute deltas in the environment
-  float dx = -du * std::sin(theta);
-  float dz = -du * std::cos(theta);
+  double dx = -du * std::sin(theta);
+  double dz = -du * std::cos(theta);
   
   // Update position
   myPosition[0] += dx;
@@ -168,21 +168,21 @@ void checkLimit(int &number, int limit)
 /*
  * Update the wheel speed from the desired robot speed and orientation
  */
-void computeWheelSpeeds(int wheelSpeed[2], const Vec2 &robotSpeed, float robotOrientation)
+void computeWheelSpeeds(int wheelSpeed[2], const Vec2 &robotSpeed, double robotOrientation)
 {
   // Compute wanted position from Reynold's speed and current location
-  float x =  robotSpeed[0]*std::cos(robotOrientation) - robotSpeed[1]*std::sin(robotOrientation); // x in robot coordinates
-  float z = -robotSpeed[0]*std::sin(robotOrientation) - robotSpeed[1]*std::cos(robotOrientation); // z in robot coordinates
+  double x =  robotSpeed[0]*std::cos(robotOrientation) - robotSpeed[1]*std::sin(robotOrientation); // x in robot coordinates
+  double z = -robotSpeed[0]*std::sin(robotOrientation) - robotSpeed[1]*std::cos(robotOrientation); // z in robot coordinates
   
-  float Ku = 0.2;   // Forward control coefficient
-  float Kw = 10.0;  // Rotational control coefficient
-  float range = sqrtf(x*x + z*z);	// Distance to the wanted position
-  float bearing = -atan2(x, z);	// Orientation of the wanted position
+  double Ku = 0.2;   // Forward control coefficient
+  double Kw = 10.0;  // Rotational control coefficient
+  double range = sqrtf(x*x + z*z);	// Distance to the wanted position
+  double bearing = -atan2(x, z);	// Orientation of the wanted position
   
   // Compute forward control
-  float u = Ku*range*cosf(bearing);
+  double u = Ku*range*cosf(bearing);
   // Compute rotational control
-  float w = Kw*range*sinf(bearing);
+  double w = Kw*range*sinf(bearing);
   
   // Convert to wheel speeds!
   wheelSpeed[0] = 50*(u - AXLE_LENGTH*w/2.0) / WHEEL_RADIUS;
@@ -230,13 +230,13 @@ void pong()
     }
     
     // Compute the position & cie
-    float dirX = dir[0]; // WHY ON REYNOLD2.C IS X EQUAL TO DIR[1] ???
-    float dirZ = dir[2];
+    double dirX = dir[0]; // WHY ON REYNOLD2.C IS X EQUAL TO DIR[1] ???
+    double dirZ = dir[2];
     
-    float theta = -std::atan2(dirZ, dirX);
+    double theta = -std::atan2(dirZ, dirX);
     theta += myTheta; // Relative orientation of our neighbour
     
-    float distance = std::sqrt(1.0 / signalStrength);
+    double distance = std::sqrt(1.0 / signalStrength);
     
     neighboursPrevPos[receivedRobotId] = neighboursPos[receivedRobotId];
     
@@ -276,21 +276,21 @@ struct PSOParams
     
     // Threshold to activate cohesion rule. This represents the minimal distance, per axis, that
     // triggers attraction toward the center of mass of the flock.
-    float cohesionThreshold; // TODO: Why is there a cohesion threshold ???
-    float cohesionWeight;
+    double cohesionThreshold; // TODO: Why is there a cohesion threshold ???
+    double cohesionWeight;
 
     // Separation
     
     // Threshold to activate dispersion rule. This represents the minimal allowed distance between
     // two boids before they try to avoid each other.
-    float separationThreshold; // TODO: We don't want to obtimize this param, do we ???
-    float spearationWeight;
+    double separationThreshold; // TODO: We don't want to obtimize this param, do we ???
+    double spearationWeight;
 
     // Alignment
-    float alignmentWeight;
+    double alignmentWeight;
     
     // Migration
-    float migrationWeigth;
+    double migrationWeigth;
 };
 
 /*
