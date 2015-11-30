@@ -52,7 +52,7 @@ Vec2 neighboursPos[FLOCK_SIZE]; // Relative positions of the neighbours
 Vec2 neighboursPrevPos[FLOCK_SIZE];
 Vec2 neighboursRelativeSpeed[FLOCK_SIZE];
 
-Vec2 migrationVec(20.0f,-20.0f); // TODO: Change our migration vector
+Vec2 migrationVec(0.0f,-20.0f); // TODO: Change our migration vector ?
 
 // -------------------
 // Obstacle avoidance functions
@@ -264,12 +264,12 @@ struct PSOParams
 {
     // Defaults settings
     PSOParams() : 
-        cohesionThreshold(0.2),
+        cohesionThreshold(0.1),
         cohesionWeight(0.5),
         separationThreshold(0.1),
         spearationWeight(1.0),
         alignmentWeight(0.01),
-        migrationWeigth(0.01)
+        migrationWeigth(0.02)
     {}
     
     // Agregation
@@ -336,7 +336,7 @@ void reynoldsRules(const PSOParams &params)
     if (i != robotId) // Loop on flockmates only
     {
       // If neighbor k is too close
-      if (pow(neighboursPos[i][0],2)+pow(neighboursPos[i][1],2) < params.separationThreshold)
+      if (norm(neighboursPos[i]) < params.separationThreshold)
       {
         dispersion -= neighboursPos[i]; // Relative distance to k
       }
