@@ -2,6 +2,7 @@
 #define VEC2_H
 
 #include <iostream>
+#include <stdexcept>
 
 /*
  * Coordinate for planar space; in Webots it corresponds to X & Z coordinates
