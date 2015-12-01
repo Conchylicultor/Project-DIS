@@ -114,7 +114,7 @@ double getCohesion(void)
  */
 double getVelocity(void)
 {
-  const double maxVelocity = 0.104; // TODO: Define max velocity of our webots
+  const double maxVelocity = 0.000104; // [m/ms]
 
   // Compute the current velocity
   double velocityVector[3] = {centerOfMass[0] - prevCenterOfMass[0],
