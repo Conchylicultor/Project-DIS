@@ -11,6 +11,7 @@
 #include <webots/emitter.h>
 #include <webots/receiver.h>
 
+#include "../common/PSOParams.hpp"
 #include "vec2.h"
 
 using namespace std;
@@ -260,41 +261,6 @@ void pong()
 // Reynolds functions
 // -------------------
 
-/*
- * Struct which contain the parametters to obtimize
- */
-struct PSOParams
-{
-    // Defaults settings
-    PSOParams() :
-        cohesionThreshold(0.1),
-        cohesionWeight(0.5),
-        separationThreshold(0.1),
-        spearationWeight(1.0),
-        alignmentWeight(0.01),
-        migrationWeigth(0.02)
-    {}
-
-    // Agregation
-
-    // Threshold to activate cohesion rule. This represents the minimal distance, per axis, that
-    // triggers attraction toward the center of mass of the flock.
-    double cohesionThreshold; // TODO: Why is there a cohesion threshold ???
-    double cohesionWeight;
-
-    // Separation
-
-    // Threshold to activate dispersion rule. This represents the minimal allowed distance between
-    // two boids before they try to avoid each other.
-    double separationThreshold;
-    double spearationWeight;
-
-    // Alignment
-    double alignmentWeight;
-
-    // Migration
-    double migrationWeigth;
-};
 
 /*
  * Compute the disired vector speed using reynolds rules
