@@ -1,6 +1,9 @@
 #ifndef PSOPARAMS_HPP
 #define PSOPARAMS_HPP
 
+#include <cstddef>
+#include <ostream>
+
 /*
  * Parameters to optimise
  */
@@ -35,7 +38,23 @@ struct PSOParams
 
     // Migration
     double migrationWeigth;
+
+    // Common to all parameters: the duration of the simulation during which the fitness is evaluated
+    static std::size_t const ITERATIONS = 1000; // * TIME_STEP = total duration [ms]
+    // TODO increase this number
 };
+
+inline std::ostream& operator<<(std::ostream& out, PSOParams const& params)
+{
+    return out << "[\n"
+               << "\tcohesion threshold   = " << params.cohesionThreshold   << "\n"
+               << "\tcohesion weight      = " << params.cohesionWeight      << "\n"
+               << "\tseparation threshold = " << params.separationThreshold << "\n"
+               << "\tseparation weight    = " << params.spearationWeight    << "\n"
+               << "\talignment weight     = " << params.alignmentWeight     << "\n"
+               << "\tmigration weight     = " << params.migrationWeigth     << "\n"
+               << "]";
+}
 
 #endif
 

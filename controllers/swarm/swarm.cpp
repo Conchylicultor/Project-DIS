@@ -257,6 +257,15 @@ void pong()
   }
 }
 
+/*
+ * Receive PSO settings from supervisor
+ */
+PSOParams getParamsFromSupervisor()
+{
+    // TODO implement me
+    return PSOParams();
+}
+
 // -------------------
 // Reynolds functions
 // -------------------
@@ -324,6 +333,31 @@ void reynoldsRules(const PSOParams &params)
 // -------------------
 
 /*
+ * Configuration of an e-puck, such as position, rotation, and so on
+ */
+struct RobotConfig
+{
+    // TODO implement me
+};
+
+/*
+ * Read the current configuration for this robot
+ */
+RobotConfig readRobotConfig()
+{
+    // TODO implement me
+    return {};
+}
+
+/*
+ * Reset this robot's position, orientation, ...
+ */
+void resetRobot(RobotConfig const& config)
+{
+    // TODO implement me
+}
+
+/*
  * Reset the robot's devices and get its ID
  */
 static void reset()
@@ -351,56 +385,76 @@ static void reset()
 }
 
 /*
+ * Apply simulation with the given parameters
+ */
+void simulate(PSOParams const& params)
+{
+    std::cout << "Starting simulation with PSO parameters: " << params << std::endl;
+
+    int wheelSpeed[2] = { 0, 0 };            // Left and right wheel speed
+    int wheelSpeedBraitenberg[2] = { 0, 0 }; // Left and right wheel speed
+
+    bool thresholdSpeedInstinct = false;
+    int maxSensorValue = 0;
+
+    for (std::size_t i = 0; i < PSOParams::ITERATIONS; ++i) {
+        // Braitenberg obstacle avoidance
+        braitenbergObstacle(wheelSpeedBraitenberg, thresholdSpeedInstinct, maxSensorValue);
+
+        // Emission/reception between flock members
+        ping(); // Indicate our presence
+        pong(); // Get informations from other robots
+
+        // Update position
+        myPrevPosition = myPosition;
+        updateCurrentPosition(wheelSpeed);
+
+        // Use received information for the Reynolds behavior
+        reynoldsRules(params);
+
+        // Compute the wheels speed
+        computeWheelSpeeds(wheelSpeed, mySpeed,
+                           myTheta); // Use the desired speed and orientation to compute the wheelSpeed
+
+        // Add Braitenberg (weighted with Reynolds)
+        if (thresholdSpeedInstinct)
+        {
+            wheelSpeed[0] -= wheelSpeed[0] * maxSensorValue / (2 * MAX_SENS);
+            wheelSpeed[1] -= wheelSpeed[1] * maxSensorValue / (2 * MAX_SENS);
+        }
+        wheelSpeed[0] += wheelSpeedBraitenberg[0];
+        wheelSpeed[1] += wheelSpeedBraitenberg[1];
+
+        // Set speed
+        wb_differential_wheels_set_speed(wheelSpeed[0], wheelSpeed[1]);
+
+        // Continue one step
+        wb_robot_step(TIME_STEP);
+    }
+}
+
+/*
  * Main function.
  */
-int main(){
-  // Initialize the robot
-  reset();
+int main()
+{
+    // Read the initial configuration for this robot
+    RobotConfig initialConfig = readRobotConfig();
 
-  PSOParams psoParams; // Default parameters TODO: Send from supervisor
+    // Enable sensors and actuators, only once
+    reset();
 
-  int wheelSpeed[2] = {0,0}; // Left and right wheel speed
-  int wheelSpeedBraitenberg[2] = {0,0}; // Left and right wheel speed
-
-  bool thresholdSpeedInstinct = false;
-  int maxSensorValue = 0;
-
-  // Main loop
-  while(true)
-  {
-    // Reinitialization
-
-    // Braitenberg obstacle avoidance
-    braitenbergObstacle(wheelSpeedBraitenberg, thresholdSpeedInstinct, maxSensorValue);
-
-    // Emission/reception between flock members
-    ping(); // Indicate our presence
-    pong(); // Get informations from other robots
-
-    // Update position
-    myPrevPosition = myPosition;
-    updateCurrentPosition(wheelSpeed);
-
-    // Use received information for the Reynolds behavior
-    reynoldsRules(psoParams);
-
-    // Compute the wheels speed
-    computeWheelSpeeds(wheelSpeed, mySpeed, myTheta); // Use the desired speed and orientation to compute the wheelSpeed
-
-    // Add Braitenberg (weighted with Reynolds)
-    if(thresholdSpeedInstinct)
+    // Main loop
+    while (true)
     {
-      wheelSpeed[0] -= wheelSpeed[0] * maxSensorValue / (2*MAX_SENS);
-      wheelSpeed[1] -= wheelSpeed[1] * maxSensorValue / (2*MAX_SENS);
+        // Wait for PSO parameters from supervisor
+        PSOParams params = getParamsFromSupervisor();
+
+        // Re-initialize the robot
+        resetRobot(initialConfig);
+
+        // Run the simulation for a while according to the info sent by the supervisor
+        simulate(params);
     }
-    wheelSpeed[0] += wheelSpeedBraitenberg[0];
-    wheelSpeed[1] += wheelSpeedBraitenberg[1];
-
-    // Set speed
-    wb_differential_wheels_set_speed(wheelSpeed[0],wheelSpeed[1]);
-
-    // Continue one step
-    wb_robot_step(TIME_STEP);
-  }
 }
 
