@@ -38,7 +38,7 @@ static const double WEIGHT_VELOCITY = 1.0;
 // Warning: ADAPT TO THE NUMBER OF ROBOTS
 static const int FLOCK_SIZE = 5;
 
-int flockId = 0; // Will correspond to the flock assosiated with the supervisor
+int flockId = 0; // Will correspond to the flock associated with the supervisor
 
 static WbNodeRef robs[FLOCK_SIZE];
 static WbFieldRef robs_translation[FLOCK_SIZE];
@@ -55,7 +55,7 @@ double migrationUrge[3] = {1.0,0.0,0.0}; // Vector containing the direction of t
 // -------------------
 
 /*
- * Compute the euclidian distance between two points
+ * Compute the Euclidean distance between two points
  */
 double computeDist(double x[3],double y[3])
 {

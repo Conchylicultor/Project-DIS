@@ -19,12 +19,12 @@ using namespace std;
 
 
 // Some remarks:
-// Probably only works in a noise free environement
+// Probably only works in a noise free environment
 // Works if all the robots of the flock are within the communication area (but this
-// point could be corrected easily if the robots only align with its neigbours)
+// point could be corrected easily if the robots only align with its neighbours)
 
 
-// Global parametters
+// Global parameters
 static const int FLOCK_SIZE = 5; // Number of robot in each flock (WARNING: Adapt to the number of robot)
 static const int TIME_STEP = 64; // [ms] Length of time step
 static const double DELTA_T = TIME_STEP/1000.0; // [s] Length of time step
@@ -273,7 +273,7 @@ PSOParams getParamsFromSupervisor()
 
 
 /*
- * Compute the disired vector speed using reynolds rules
+ * Compute the desired vector speed using Reynolds rules
  */
 void reynoldsRules(const PSOParams &params)
 {
@@ -390,8 +390,8 @@ void simulate(PSOParams const& params)
         reynoldsRules(params);
 
         // Compute the wheels speed
-        computeWheelSpeeds(wheelSpeed, mySpeed,
-                           myTheta); // Use the desired speed and orientation to compute the wheelSpeed
+        // Use the desired speed and orientation to compute the wheelSpeed
+        computeWheelSpeeds(wheelSpeed, mySpeed, myTheta);
 
         // Add Braitenberg (weighted with Reynolds)
         if (thresholdSpeedInstinct)
