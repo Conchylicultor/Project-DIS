@@ -26,9 +26,9 @@ int printIter = 0;
 
 
 // Fitness weights
-static const float WEIGHT_ORIENTATION = 1.0;
-static const float WEIGHT_COHESION = 1.0;
-static const float WEIGHT_VELOCITY = 1.0;
+static const double WEIGHT_ORIENTATION = 1.0;
+static const double WEIGHT_COHESION = 1.0;
+static const double WEIGHT_VELOCITY = 1.0;
 
 // Warning: ADAPT TO THE NUMBER OF ROBOTS
 static const int FLOCK_SIZE = 5;
@@ -39,10 +39,10 @@ static WbNodeRef robs[FLOCK_SIZE];
 static WbFieldRef robs_translation[FLOCK_SIZE];
 static WbFieldRef robs_rotation[FLOCK_SIZE];
 
-float loc[FLOCK_SIZE][4]; // Contain the localisation of all robots
-float centerOfMass[3] = {0.0f,0.0f,0.0f};
-float prevCenterOfMass[3] = {0.0f,0.0f,0.0f}; // Location of the center of mass at time (t-1)
-float migrationUrge[3] = {1.0f,0.0f,0.0f}; // Vector containing the direction of the urge
+double loc[FLOCK_SIZE][4]; // Contain the localisation of all robots
+double centerOfMass[3] = {0.0,0.0,0.0};
+double prevCenterOfMass[3] = {0.0,0.0,0.0}; // Location of the center of mass at time (t-1)
+double migrationUrge[3] = {1.0,0.0,0.0}; // Vector containing the direction of the urge
 
 
 // -------------------
@@ -52,7 +52,7 @@ float migrationUrge[3] = {1.0f,0.0f,0.0f}; // Vector containing the direction of
 /*
  * Compute the euclidian distance between two points
  */
-float computeDist(float x[3],float y[3])
+double computeDist(double x[3],double y[3])
 {
   return std::sqrt((x[0]-y[0]) * (x[0]-y[0]) +
                    (x[1]-y[1]) * (x[1]-y[1]) +
@@ -62,7 +62,7 @@ float computeDist(float x[3],float y[3])
 /*
  * Compute the dot product
  */
-float computeDot(float x[3],float y[3])
+double computeDot(double x[3],double y[3])
 {
   return x[0]*y[0] + x[1]*y[1] + x[2]*y[2];
 }
@@ -72,14 +72,14 @@ float computeDot(float x[3],float y[3])
 // -------------------
 
 /*
- * Compute orientaton metric.
+ * Compute orientation metric.
  */
-float getOrientation(void)
+double getOrientation(void)
 {
-  std::complex<float> orientation = 0.0f;
+  std::complex<double> orientation = 0.0;
   for(int i=0 ; i<FLOCK_SIZE ; ++i)
   {
-    orientation += std::polar(1.0f, loc[i][3]); // 1.0 * exp(i*theta)
+    orientation += std::polar(1.0, loc[i][3]); // 1.0 * exp(i*theta)
   }
 
   // Normalize
@@ -89,12 +89,12 @@ float getOrientation(void)
 /*
  * Compute cohesion metric.
  */
-float getCohesion(void)
+double getCohesion(void)
 {
-  // The center of mass is already computed in the main fuction
+  // The center of mass is already computed in the main function
 
   // Compute the average distance to the center of mass
-  float dist = 0.0f;
+  double dist = 0.0;
   for(int i=0 ; i<FLOCK_SIZE ; ++i)
   {
     dist += computeDist(centerOfMass, loc[i]); // Thanks to the dirty C syntax, loc[i][4] is automatically "cast" into loc[i][3]
@@ -102,27 +102,27 @@ float getCohesion(void)
   dist /= FLOCK_SIZE;
 
   // Return the metric
-  return 1.0f/(1.0f+dist); // The closest, the better is
+  return 1.0/(1.0+dist); // The closest, the better is
 }
 
 /*
  * Compute velocity metric.
  */
-float getVelocity(void)
+double getVelocity(void)
 {
-  const float maxVelocity = 0.001f; // TODO: Define max velocity of our webots
+  const double maxVelocity = 0.001; // TODO: Define max velocity of our webots
 
   // Compute the current velocity
-  float velocityVector[3] = {centerOfMass[0] - prevCenterOfMass[0],
+  double velocityVector[3] = {centerOfMass[0] - prevCenterOfMass[0],
                              centerOfMass[1] - prevCenterOfMass[1],
                              centerOfMass[2] - prevCenterOfMass[2]}; // = x(t) - x(t-1)
 
   // First way: Compute the projection with respect to the migration urge
-  //float currentVelocity = computeDot(velocityVector, migrationUrge);
+  //double currentVelocity = computeDot(velocityVector, migrationUrge);
 
   // Second way: We simply take the velocity of the center of mass
-  float origin[3] = {0,0,0};
-  float currentVelocity = computeDist(velocityVector, origin); // Norm of the vector
+  double origin[3] = {0,0,0};
+  double currentVelocity = computeDist(velocityVector, origin); // Norm of the vector
 
   return currentVelocity / maxVelocity; // Return the normalized velocity
 }
@@ -130,11 +130,11 @@ float getVelocity(void)
 /*
  * Compute performance metric.
  */
-float computeFitnessStep(void)
+double computeFitnessStep(void)
 {
-  float orientation = getOrientation();
-  float cohesion = getCohesion();
-  float velocity = getVelocity();
+  double orientation = getOrientation();
+  double cohesion = getCohesion();
+  double velocity = getVelocity();
 
   PRINT_INFO
   {
@@ -193,8 +193,8 @@ int main(int argc, char *args[])
   cout << "Loading supervisor..." << endl;
   reset();
 
-  float fitnessGlobal = 0.0f;
-  float fitnessInstant = 0.0f;
+  double fitnessGlobal = 0.0;
+  double fitnessInstant = 0.0;
   int nbTimestep = 0;
 
   // Main loop !
@@ -210,7 +210,7 @@ int main(int argc, char *args[])
     for (int i=0 ; i<FLOCK_SIZE ; i++)
     {
       loc[i][0] = wb_supervisor_field_get_sf_vec3f(robs_translation[i])[0]; // x
-      loc[i][1] = wb_supervisor_field_get_sf_vec3f(robs_translation[i])[1]; // y (probalby useless)
+      loc[i][1] = wb_supervisor_field_get_sf_vec3f(robs_translation[i])[1]; // y (probably useless)
       loc[i][2] = wb_supervisor_field_get_sf_vec3f(robs_translation[i])[2]; // z
       loc[i][3] = wb_supervisor_field_get_sf_rotation(robs_rotation[i])[3]; // theta (rotation)
     }
