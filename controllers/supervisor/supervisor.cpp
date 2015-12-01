@@ -9,6 +9,7 @@
 #include <webots/emitter.h>
 #include <webots/supervisor.h>
 
+#include "../common/Config.hpp"
 #include "../common/PSOParams.hpp"
 
 using namespace std;
@@ -28,15 +29,12 @@ using namespace std;
 const int frequencyPrint = 100;
 int printIter = 0;
 
-const int TIME_STEP = 64; // [ms] Length of time step
 
 // Fitness weights
 static const double WEIGHT_ORIENTATION = 1.0;
 static const double WEIGHT_COHESION = 1.0;
 static const double WEIGHT_VELOCITY = 1.0;
 
-// Warning: ADAPT TO THE NUMBER OF ROBOTS
-static const int FLOCK_SIZE = 5;
 
 int flockId = 0; // Will correspond to the flock associated with the supervisor
 

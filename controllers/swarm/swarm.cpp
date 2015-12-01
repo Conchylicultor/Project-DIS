@@ -12,6 +12,7 @@
 #include <webots/receiver.h>
 #include <webots/supervisor.h>
 
+#include "../common/Config.hpp"
 #include "../common/PSOParams.hpp"
 #include "vec2.h"
 
@@ -23,11 +24,6 @@ using namespace std;
 // Works if all the robots of the flock are within the communication area (but this
 // point could be corrected easily if the robots only align with its neighbours)
 
-
-// Global parameters
-static const int FLOCK_SIZE = 5; // Number of robot in each flock (WARNING: Adapt to the number of robot)
-static const int TIME_STEP = 64; // [ms] Length of time step
-static const double DELTA_T = TIME_STEP/1000.0; // [s] Length of time step
 
 string robotName;
 int robotIdGlobal = 0; // World id
