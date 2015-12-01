@@ -233,7 +233,7 @@ void pong()
     }
 
     // Compute the position & cie
-    double dirX = dir[0]; // WHY ON REYNOLD2.C IS X EQUAL TO DIR[1] ???
+    double dirX = dir[0];
     double dirZ = dir[2];
 
     double theta = -std::atan2(dirZ, dirX);
@@ -286,7 +286,7 @@ struct PSOParams
 
     // Threshold to activate dispersion rule. This represents the minimal allowed distance between
     // two boids before they try to avoid each other.
-    double separationThreshold; // TODO: We don't want to obtimize this param, do we ???
+    double separationThreshold;
     double spearationWeight;
 
     // Alignment
@@ -318,9 +318,6 @@ void reynoldsRules(const PSOParams &params)
       relAvgLoc += neighboursPos[i];
     }
   }
-  // WHY REYNOLDS2.C DON'T DIVIDE BY THE NUMBER OF RODOTS (IS IT REALLY AN
-  // AVERAGE ???) ??? << NOT THAT IMPORTANT BECAUSE WE CAN CORRECT IT
-  // WITH THE WEIGHTS BUT STILL...
   relAvgSpeed /= (FLOCK_SIZE-1);
   relAvgLoc /= (FLOCK_SIZE-1); // -1 because we don't take ourself in account
 
@@ -417,7 +414,6 @@ int main(){
     // Update position
     myPrevPosition = myPosition;
     updateCurrentPosition(wheelSpeed);
-    mySpeed = (myPosition - myPrevPosition) / DELTA_T; // WHY IS IT SET IF WE COMPUTE MY SPEED IN THE REYNOLDS FUNCTION
 
     // Use received information for the reynolds behavior
     reynoldsRules(psoParams);
