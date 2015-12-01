@@ -379,7 +379,7 @@ int main(int argc, char *args[])
   // Read the initial configuration for all robots
   RobotConfigs initialConfigs = readAllRobotsConfig();
 
-  PSOParams params;
+  PSOParams params = DEFAULT_PSOPARAMS;
 
   while (true)
   {

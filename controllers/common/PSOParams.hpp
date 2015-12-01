@@ -9,16 +9,6 @@
  */
 struct PSOParams
 {
-    // Defaults settings
-    PSOParams() :
-        cohesionThreshold(0.1),
-        cohesionWeight(0.5),
-        separationThreshold(0.1),
-        spearationWeight(1.0),
-        alignmentWeight(0.01),
-        migrationWeigth(0.02)
-    {}
-
     // Cohesion
 
     // Threshold to activate cohesion rule. This represents the minimal distance that
@@ -43,6 +33,8 @@ struct PSOParams
     static std::size_t const ITERATIONS = 1000; // * TIME_STEP = total duration [ms]
     // TODO increase this number
 };
+
+static PSOParams const& DEFAULT_PSOPARAMS{0.1, 0.5, 0.1, 1.0, 0.01, 0.02};
 
 inline std::ostream& operator<<(std::ostream& out, PSOParams const& params)
 {

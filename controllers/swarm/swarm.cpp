@@ -264,7 +264,7 @@ void pong()
 PSOParams getParamsFromSupervisor()
 {
     // TODO implement me
-    return PSOParams();
+    return DEFAULT_PSOPARAMS;
 }
 
 // -------------------
