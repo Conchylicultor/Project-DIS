@@ -25,7 +25,7 @@ using namespace std;
 // Global parametters
 static const int FLOCK_SIZE = 5; // Number of robot in each flock (WARNING: Adapt to the number of robot)
 static const int TIME_STEP = 64; // [ms] Length of time step
-static const double DELTA_T = TIME_STEP/1000.0f; // [s] Length of time step
+static const double DELTA_T = TIME_STEP/1000.0; // [s] Length of time step
 
 string robotName;
 int robotIdGlobal = 0; // World id
@@ -43,16 +43,16 @@ WbDeviceTag emitter;		// Handle for the emitter node
 // Coordinate variables
 // -------------------
 
-Vec2 myPosition(0.0f,0.0f);
-Vec2 myPrevPosition(0.0f,0.0f);
-Vec2 mySpeed(0.0f,0.0f);
-double myTheta = 0.0f; // TODO we could use a compass instead
+Vec2 myPosition(0.0,0.0);
+Vec2 myPrevPosition(0.0,0.0);
+Vec2 mySpeed(0.0,0.0);
+double myTheta = 0.0; // TODO we could use a compass instead
 
 Vec2 neighboursPos[FLOCK_SIZE]; // Relative positions of the neighbours
 Vec2 neighboursPrevPos[FLOCK_SIZE];
 Vec2 neighboursRelativeSpeed[FLOCK_SIZE];
 
-Vec2 migrationVec(0.0f,-20.0f); // TODO: Change our migration vector ?
+Vec2 migrationVec(0.0,-20.0); // TODO: Change our migration vector ?
 
 // -------------------
 // Obstacle avoidance functions
@@ -131,8 +131,8 @@ void updateCurrentPosition(const int wheelSpeed[2])
   double theta = myTheta;
 
   // Compute deltas of the robot
-  double dl = (double)wheelSpeed[0] * SPEED_UNIT_RADS * WHEEL_RADIUS * DELTA_T;
-  double dr = (double)wheelSpeed[1] * SPEED_UNIT_RADS * WHEEL_RADIUS * DELTA_T;
+  double dl = wheelSpeed[0] * SPEED_UNIT_RADS * WHEEL_RADIUS * DELTA_T;
+  double dr = wheelSpeed[1] * SPEED_UNIT_RADS * WHEEL_RADIUS * DELTA_T;
   double du = (dr + dl)/2.0;
   double dtheta = (dr - dl)/AXLE_LENGTH;
 
@@ -179,14 +179,14 @@ void computeWheelSpeeds(int wheelSpeed[2], const Vec2 &robotSpeed, double robotO
 
   double Ku = 0.2;   // Forward control coefficient
   double Kw = 10.0;  // Rotational control coefficient
-  double range = sqrtf(x*x + z*z);	// Distance to the wanted position
-  double bearing = -atan2(x, z);	// Orientation of the wanted position
-  
+  double range = std::sqrt(x*x + z*z);	// Distance to the wanted position
+  double bearing = -std::atan2(x, z);	// Orientation of the wanted position
+
   // Compute forward control
-  double u = Ku*range*cosf(bearing);
+  double u = Ku*range*std::cos(bearing);
   // Compute rotational control
-  double w = Kw*range*sinf(bearing);
-  
+  double w = Kw*range*std::sin(bearing);
+
   // Convert to wheel speeds!
   wheelSpeed[0] = 50*(u - AXLE_LENGTH*w/2.0) / WHEEL_RADIUS;
   wheelSpeed[1] = 50*(u + AXLE_LENGTH*w/2.0) / WHEEL_RADIUS;
