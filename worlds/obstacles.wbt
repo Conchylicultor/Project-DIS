@@ -533,6 +533,7 @@ DEF epuck0 DifferentialWheels {
     DEF receiver Receiver {
     }
     DEF superReceiver Receiver {
+      name "superReceiver"
     }
     DEF emitter Emitter {
     }
@@ -2165,6 +2166,7 @@ DEF epuck1 DifferentialWheels {
     DEF receiver Receiver {
     }
     DEF superReceiver Receiver {
+      name "superReceiver"
     }
     DEF emitter Emitter {
     }
@@ -3785,6 +3787,7 @@ DEF epuck2 DifferentialWheels {
     DEF receiver Receiver {
     }
     DEF superReceiver Receiver {
+      name "superReceiver"
     }
     DEF emitter Emitter {
     }
@@ -5405,6 +5408,7 @@ DEF epuck3 DifferentialWheels {
     DEF receiver Receiver {
     }
     DEF superReceiver Receiver {
+      name "superReceiver"
     }
     DEF emitter Emitter {
     }
@@ -7025,6 +7029,7 @@ DEF epuck4 DifferentialWheels {
     DEF receiver Receiver {
     }
     DEF superReceiver Receiver {
+      name "superReceiver"
     }
     DEF emitter Emitter {
     }

@@ -247,6 +247,7 @@ DEF epuck0 DifferentialWheels {
       channel 1
     }
     DEF superReceiver Receiver {
+      name "superReceiver"
     }
     DEF emitter Emitter {
       channel 1
@@ -1863,6 +1864,7 @@ DEF epuck1 DifferentialWheels {
       channel 1
     }
     DEF superReceiver Receiver {
+      name "superReceiver"
     }
     DEF emitter Emitter {
       channel 1
@@ -3479,6 +3481,7 @@ DEF epuck2 DifferentialWheels {
       channel 1
     }
     DEF superReceiver Receiver {
+      name "superReceiver"
     }
     DEF emitter Emitter {
       channel 1
@@ -5095,6 +5098,7 @@ DEF epuck3 DifferentialWheels {
       channel 1
     }
     DEF superReceiver Receiver {
+      name "superReceiver"
     }
     DEF emitter Emitter {
       channel 1
@@ -6711,6 +6715,7 @@ DEF epuck4 DifferentialWheels {
       channel 1
     }
     DEF superReceiver Receiver {
+      name "superReceiver"
     }
     DEF emitter Emitter {
       channel 1
@@ -8345,6 +8350,7 @@ DEF epuck5 DifferentialWheels {
       channel 2
     }
     DEF superReceiver Receiver {
+      name "superReceiver"
     }
     DEF emitter Emitter {
       channel 2
@@ -9967,6 +9973,7 @@ DEF epuck6 DifferentialWheels {
       channel 2
     }
     DEF superReceiver Receiver {
+      name "superReceiver"
     }
     DEF emitter Emitter {
       channel 2
@@ -11589,6 +11596,7 @@ DEF epuck7 DifferentialWheels {
       channel 2
     }
     DEF superReceiver Receiver {
+      name "superReceiver"
     }
     DEF emitter Emitter {
       channel 2
@@ -13211,6 +13219,7 @@ DEF epuck8 DifferentialWheels {
       channel 2
     }
     DEF superReceiver Receiver {
+      name "superReceiver"
     }
     DEF emitter Emitter {
       channel 2
@@ -14833,6 +14842,7 @@ DEF epuck9 DifferentialWheels {
       channel 2
     }
     DEF superReceiver Receiver {
+      name "superReceiver"
     }
     DEF emitter Emitter {
       channel 2
