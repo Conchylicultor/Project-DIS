@@ -1,4 +1,4 @@
-#VRML_SIM V8.3.0 utf8
+#VRML_SIM V8.2.1 utf8
 WorldInfo {
   info [
     "Description"
@@ -531,6 +531,8 @@ DEF epuck0 DifferentialWheels {
   rotation 0 1 0 -1.5708
   children [
     DEF receiver Receiver {
+    }
+    DEF superReceiver Receiver {
     }
     DEF emitter Emitter {
     }
@@ -2162,6 +2164,8 @@ DEF epuck1 DifferentialWheels {
   children [
     DEF receiver Receiver {
     }
+    DEF superReceiver Receiver {
+    }
     DEF emitter Emitter {
     }
     DEF EPUCK_LEFT_WHEEL Solid {
@@ -3779,6 +3783,8 @@ DEF epuck2 DifferentialWheels {
   rotation 0 1 0 -1.5708
   children [
     DEF receiver Receiver {
+    }
+    DEF superReceiver Receiver {
     }
     DEF emitter Emitter {
     }
@@ -5398,6 +5404,8 @@ DEF epuck3 DifferentialWheels {
   children [
     DEF receiver Receiver {
     }
+    DEF superReceiver Receiver {
+    }
     DEF emitter Emitter {
     }
     DEF EPUCK_LEFT_WHEEL Solid {
@@ -7015,6 +7023,8 @@ DEF epuck4 DifferentialWheels {
   rotation 0 1 0 -1.5708
   children [
     DEF receiver Receiver {
+    }
+    DEF superReceiver Receiver {
     }
     DEF emitter Emitter {
     }
