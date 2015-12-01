@@ -164,7 +164,7 @@ void reset(void)
   // Extract the number of flock
   string supervisorName = wb_robot_get_name();
   sscanf(supervisorName.c_str(),"super%d",&flockId); // read robot id from the robot's name
-  
+
   // Get the epucks from the tree
   for (int i=0 ; i<FLOCK_SIZE ; i++) {
     string robotName = "epuck" + std::to_string(i + (flockId-1)*FLOCK_SIZE); // Load the epuck corresponding to the right flock
