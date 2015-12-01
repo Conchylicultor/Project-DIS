@@ -19,7 +19,7 @@ using namespace std;
 // Some remarks:
 // Probably only works in a noise free environement
 // Works if all the robots of the flock are within the communication area (but this 
-// point could be corrected easily if the robots only align of its neigbours)
+// point could be corrected easily if the robots only align with its neigbours)
 
 
 // Global parametters
@@ -62,7 +62,10 @@ Vec2 migrationVec(0.0f,-20.0f); // TODO: Change our migration vector ?
 const int MIN_SENS = 350; // Minimum sensibility value
 const int MAX_SENS = 4096; // Maximum sensibility value
 const int weightMatrix[2][NB_SENSORS] = {{-72,-58,-36,8,10,36,28,18},
-                                         {18,28,36,10,8,-36,-58,-72}}; // Braitenberg weight
+                                         {17,29,34,10,8,-38,-56,-76}}; // Braitenberg weight
+
+// const int weightMatrix[2][NB_SENSORS] = {{-72,-58,-36,8,10,36,28,18},
+//                                         {18,28,36,10,8,-36,-58,-72}}; // Braitenberg weight
 
 /*
  * Try avoiding obstacles
