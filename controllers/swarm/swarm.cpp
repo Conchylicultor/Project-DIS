@@ -357,7 +357,7 @@ int main(){
   // Initialize the robot
   reset();
 
-  PSOParams psoParams; // Default parametters TODO: Send from supervisor
+  PSOParams psoParams; // Default parameters TODO: Send from supervisor
 
   int wheelSpeed[2] = {0,0}; // Left and right wheel speed
   int wheelSpeedBraitenberg[2] = {0,0}; // Left and right wheel speed
@@ -381,13 +381,13 @@ int main(){
     myPrevPosition = myPosition;
     updateCurrentPosition(wheelSpeed);
 
-    // Use received information for the reynolds behavior
+    // Use received information for the Reynolds behavior
     reynoldsRules(psoParams);
 
     // Compute the wheels speed
     computeWheelSpeeds(wheelSpeed, mySpeed, myTheta); // Use the desired speed and orientation to compute the wheelSpeed
 
-    // Add Braitenberg (weighted with reynolds)
+    // Add Braitenberg (weighted with Reynolds)
     if(thresholdSpeedInstinct)
     {
       wheelSpeed[0] -= wheelSpeed[0] * maxSensorValue / (2*MAX_SENS);
