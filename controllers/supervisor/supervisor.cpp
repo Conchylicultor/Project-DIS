@@ -47,6 +47,7 @@ double centerOfMass[3] = {0.0,0.0,0.0};
 double prevCenterOfMass[3] = {0.0,0.0,0.0}; // Location of the center of mass at time (t-1)
 double migrationUrge[3] = {1.0,0.0,0.0}; // Vector containing the direction of the urge
 
+WbDeviceTag emitter; // This emitter is only used to send e-puck their PSO settings
 
 // -------------------
 // Some math functions
@@ -260,9 +261,15 @@ void resetAllRobots(RobotConfigs const& configs)
 // PSO functions
 // -------------------
 
+/*
+ * Send the given parameters to all robots
+ */
 void sendParamsToRobots(PSOParams const& params)
 {
-    // TODO implement me
+    void const* buffer = reinterpret_cast<void const*>(&params);
+    int const size = sizeof(PSOParams);
+
+    wb_emitter_send(emitter, buffer, size);
 }
 
 
@@ -280,6 +287,9 @@ void reset(void)
   // Extract the number of flock
   string supervisorName = wb_robot_get_name();
   sscanf(supervisorName.c_str(),"super%d",&flockId); // read robot id from the robot's name
+
+  emitter = wb_robot_get_device("emitter");
+  wb_emitter_set_channel(emitter, SUPER_EPUCK_CHANNEL);
 
   // Get the epucks from the tree
   for (int i=0 ; i<FLOCK_SIZE ; i++) {

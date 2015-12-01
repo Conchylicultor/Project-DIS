@@ -1,3 +1,4 @@
+#include <cassert>
 #include <iostream>
 #include <iterator>
 #include <cstdio> // For sscanf
@@ -32,10 +33,10 @@ int robotId = 0; // Id in the flock
 
 static const int NB_SENSORS = 8; // Number of distance sensors
 
-WbDeviceTag ds[NB_SENSORS];	// Handle for the infrared distance sensors
-WbDeviceTag receiver;		// Handle for the receiver node
-WbDeviceTag emitter;		// Handle for the emitter node
-
+WbDeviceTag ds[NB_SENSORS];     // Handle for the infrared distance sensors
+WbDeviceTag receiver;           // Handle for the receiver node
+WbDeviceTag emitter;            // Handle for the emitter node
+WbDeviceTag superReceiver;      // Handle for the receiver node (supervisor -> epuck communication)
 
 // -------------------
 // Coordinate variables
@@ -259,8 +260,27 @@ void pong()
  */
 PSOParams getParamsFromSupervisor()
 {
-    // TODO implement me
-    return DEFAULT_PSOPARAMS;
+    PSOParams params; // RVO
+
+    // Wait for data
+    while (wb_receiver_get_queue_length(superReceiver) == 0)
+    {
+        wb_robot_step(TIME_STEP);
+    }
+
+    void const* buffer = wb_receiver_get_data(superReceiver);
+    auto size = wb_receiver_get_data_size(superReceiver);
+
+    // Make sure we receive something somewhat valid
+    assert(buffer && size == sizeof(PSOParams));
+
+    PSOParams const* p = reinterpret_cast<PSOParams const*>(buffer);
+    params = *p; // copy what we got from the supervisor
+
+    // Get ready for the next packet:
+    wb_receiver_next_packet(superReceiver);
+
+    return params;
 }
 
 // -------------------
@@ -347,13 +367,18 @@ static void reset()
 
     // Loading R&B module
     receiver = wb_robot_get_device("receiver");
+    superReceiver = wb_robot_get_device("superReceiver");
     emitter = wb_robot_get_device("emitter");
-    wb_receiver_enable(receiver,64);
+    wb_emitter_set_channel(emitter, EPUCK_EPCUK_CHANNEL);
+    wb_receiver_set_channel(receiver, EPUCK_EPCUK_CHANNEL);
+    wb_receiver_enable(receiver, TIME_STEP);
+    wb_receiver_set_channel(superReceiver, SUPER_EPUCK_CHANNEL);
+    wb_receiver_enable(superReceiver, TIME_STEP);
 
     // Loading the distances sensors
     for(int i=0; i<NB_SENSORS;i++) {
         ds[i]=wb_robot_get_device(string("ps" + std::to_string(i)).c_str());	// the device name is specified in the world file
-        wb_distance_sensor_enable(ds[i],64);
+        wb_distance_sensor_enable(ds[i], TIME_STEP);
     }
 }
 
@@ -419,6 +444,9 @@ int main()
     {
         // Wait for PSO parameters from supervisor
         PSOParams params = getParamsFromSupervisor();
+
+        std::cout << "Received the following PSO parameters from supervisor: "
+                  << params << std::endl;
 
         // At this point the supervisor will have reset the robots.
 
