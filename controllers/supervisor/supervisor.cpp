@@ -28,6 +28,7 @@ using namespace std;
 const int frequencyPrint = 100;
 int printIter = 0;
 
+const int TIME_STEP = 64; // [ms] Length of time step
 
 // Fitness weights
 static const double WEIGHT_ORIENTATION = 1.0;
@@ -114,12 +115,12 @@ double getCohesion(void)
  */
 double getVelocity(void)
 {
-  const double maxVelocity = 0.000104; // [m/ms]
+  const double maxVelocity = 0.000104 * TIME_STEP; // [m/TIME_STEP]
 
   // Compute the current velocity
   double velocityVector[3] = {centerOfMass[0] - prevCenterOfMass[0],
-                             centerOfMass[1] - prevCenterOfMass[1],
-                             centerOfMass[2] - prevCenterOfMass[2]}; // = x(t) - x(t-1)
+                              centerOfMass[1] - prevCenterOfMass[1],
+                              centerOfMass[2] - prevCenterOfMass[2]}; // = x(t) - x(t-1)
 
   // First way: Compute the projection with respect to the migration urge
   //double currentVelocity = computeDot(velocityVector, migrationUrge);
@@ -361,7 +362,7 @@ double simulate()
 
     printIter = nbTimestep % frequencyPrint; // Update the printing iterator
 
-    wb_robot_step(64);
+    wb_robot_step(TIME_STEP);
   }
 
   return fitnessGlobal;
