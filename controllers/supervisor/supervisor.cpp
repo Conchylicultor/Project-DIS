@@ -1,3 +1,5 @@
+#include <array>
+#include <algorithm>
 #include <iostream>
 #include <string>
 #include <complex>
@@ -6,6 +8,8 @@
 #include <webots/robot.h>
 #include <webots/emitter.h>
 #include <webots/supervisor.h>
+
+#include "../common/PSOParams.hpp"
 
 using namespace std;
 
@@ -151,6 +155,119 @@ double computeFitnessStep(void)
 
 
 // -------------------
+// Reset functions
+// -------------------
+
+/*
+ * Configuration of an e-puck, such as position, rotation
+ *
+ * see https://www.cyberbotics.com/guide/using-numerical-optimization-methods.php
+ */
+struct RobotConfig
+{
+    std::array<double, 3> translation;
+    std::array<double, 4> rotation;
+};
+
+// TODO change FLOCK_SIZE when merging "super" supervisors together
+using RobotConfigs = std::array<RobotConfig, FLOCK_SIZE>;
+
+/*
+ * Read the current configuration for this robot
+ */
+RobotConfig readRobotConfig(std::string const& robotName)
+{
+    RobotConfig config;
+
+    // 'supervisor' here is NOT the PSO supervisor!
+    WbNodeRef node = wb_supervisor_node_get_from_def(robotName.c_str());
+
+    WbFieldRef transField = wb_supervisor_node_get_field(node, "translation");
+    double const* translation = wb_supervisor_field_get_sf_vec3f(transField);
+    std::copy_n(translation, 3, std::begin(config.translation));
+
+    WbFieldRef rotField = wb_supervisor_node_get_field(node, "rotation");
+    double const* rotation = wb_supervisor_field_get_sf_rotation(rotField);
+    std::copy_n(rotation, 4, std::begin(config.rotation));
+
+    return config;
+}
+
+/*
+ * Reset this robot's position, orientation, ...
+ */
+void resetRobot(std::string const& robotName, RobotConfig const& config)
+{
+    // 'supervisor' here is NOT the PSO supervisor!
+    WbNodeRef node = wb_supervisor_node_get_from_def(robotName.c_str());
+
+    WbFieldRef transField = wb_supervisor_node_get_field(node, "translation");
+    wb_supervisor_field_set_sf_vec3f(transField, config.translation.data());
+
+    WbFieldRef rotField = wb_supervisor_node_get_field(node, "rotation");
+    wb_supervisor_field_set_sf_rotation(rotField, config.rotation.data());
+
+    // NOTE: motors are not reset. This might create a slight imperfection for the
+    // few first iterations but nothing significant for the overall fitness measure.
+
+    std::cout << "Robot " << robotName << " was physically reset" << std::endl;
+}
+
+/*
+ * Get the name of the i-th robot
+ *
+ * NOTE: works only with one flock currently.
+ */
+std::string getRobotName(std::size_t i)
+{
+    return "epuck" + std::to_string(i);
+}
+
+/*
+ * Read the configuration for all robots
+ *
+ * The configuration of the i-th robot is stored at the i-th index of the returned array
+ */
+RobotConfigs readAllRobotsConfig()
+{
+    RobotConfigs configs; // RVO
+
+    for (std::size_t i = 0; i < configs.size(); ++i)
+    {
+        std::string name = getRobotName(i);
+        configs[i] = readRobotConfig(name);
+    }
+
+    return configs;
+}
+
+/*
+ * Reset all robots
+ */
+void resetAllRobots(RobotConfigs const& configs)
+{
+    for (std::size_t i = 0; i < configs.size(); ++i)
+    {
+        std::string name = getRobotName(i);
+        resetRobot(name, configs[i]);
+    }
+
+    // Finally, reset the physics module
+    wb_supervisor_simulation_reset_physics();
+}
+
+
+// -------------------
+// PSO functions
+// -------------------
+
+void sendParamsToRobots(PSOParams const& params)
+{
+    // TODO implement me
+}
+
+
+// -------------------
 // Main functions
 // -------------------
 
@@ -186,20 +303,13 @@ void reset(void)
 }
 
 /*
- * Main function.
+ * Compute the fitness for the current PSO parameters
  */
-int main(int argc, char *args[])
+double simulate()
 {
-  cout << "Loading supervisor..." << endl;
-  reset();
-
   double fitnessGlobal = 0.0;
-  double fitnessInstant = 0.0;
-  int nbTimestep = 0;
 
-  // Main loop !
-  bool finished = false;
-  while(!finished)
+  for (std::size_t nbTimestep = 0; nbTimestep < PSOParams::ITERATIONS; ++nbTimestep)
   {
     // Which supervisor are we ?
     PRINT_INFO
@@ -231,7 +341,7 @@ int main(int argc, char *args[])
     // Update fitness
     if(nbTimestep > 0)
     {
-      fitnessInstant = computeFitnessStep();
+      double fitnessInstant = computeFitnessStep();
       fitnessGlobal += fitnessInstant;
 
       // Plot every x timesteps
@@ -249,11 +359,43 @@ int main(int argc, char *args[])
       prevCenterOfMass[j] = centerOfMass[j];
     }
 
-    nbTimestep++;
     printIter = nbTimestep % frequencyPrint; // Update the printing iterator
 
     wb_robot_step(64);
   }
 
+  return fitnessGlobal;
+}
+
+
+/*
+ * Main function.
+ */
+int main(int argc, char *args[])
+{
+  cout << "Loading supervisor..." << endl;
+  reset();
+
+  // Read the initial configuration for all robots
+  RobotConfigs initialConfigs = readAllRobotsConfig();
+
+  PSOParams params;
+
+  while (true)
+  {
+    // Re-initialize the robots
+    resetAllRobots(initialConfigs);
+
+    // Let robots know the new PSO parameters
+    sendParamsToRobots(params);
+
+    // Run the simulation for a while and compute the fitness
+    double fitness = simulate();
+
+    // TODO Update params
+  }
+
   return 0;
 }
+
+

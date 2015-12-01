@@ -1,5 +1,3 @@
-#include <array>
-#include <algorithm>
 #include <iostream>
 #include <iterator>
 #include <cstdio> // For sscanf
@@ -335,60 +333,6 @@ void reynoldsRules(const PSOParams &params)
 // Main functions
 // -------------------
 
-/*
- * Configuration of an e-puck, such as position, rotation, and so on
- *
- * see https://www.cyberbotics.com/guide/using-numerical-optimization-methods.php
- */
-struct RobotConfig
-{
-    std::array<double, 3> translation;
-    std::array<double, 4> rotation;
-};
-
-/*
- * Read the current configuration for this robot
- */
-RobotConfig readRobotConfig()
-{
-    RobotConfig config;
-
-    // 'supervisor' here is NOT the PSO supervisor!
-    WbNodeRef node = wb_supervisor_node_get_from_def(robotName.c_str());
-
-    WbFieldRef transField = wb_supervisor_node_get_field(node, "translation");
-    double const* translation = wb_supervisor_field_get_sf_vec3f(transField);
-    std::copy_n(translation, 3, std::begin(config.translation));
-
-    WbFieldRef rotField = wb_supervisor_node_get_field(node, "rotation");
-    double const* rotation = wb_supervisor_field_get_sf_rotation(rotField);
-    std::copy_n(rotation, 4, std::begin(config.rotation));
-
-    return config;
-}
-
-/*
- * Reset this robot's position, orientation, ...
- */
-void resetRobot(RobotConfig const& config)
-{
-    // 'supervisor' here is NOT the PSO supervisor!
-    WbNodeRef node = wb_supervisor_node_get_from_def(robotName.c_str());
-
-    WbFieldRef transField = wb_supervisor_node_get_field(node, "translation");
-    wb_supervisor_field_set_sf_vec3f(transField, config.translation.data());
-
-    WbFieldRef rotField = wb_supervisor_node_get_field(node, "rotation");
-    wb_supervisor_field_set_sf_rotation(rotField, config.rotation.data());
-
-    // NOTE: motors are not reset. This might create a slight imperfection for the
-    // few first iterations but nothing significant for the overall fitness measure.
-
-    // Finally, reset the physics module
-    wb_supervisor_simulation_reset_physics();
-
-    std::cout << "Robot " << robotName << " was physically reset" << std::endl;
-}
 
 /*
  * Reset the robot's devices and get its ID
@@ -474,17 +418,13 @@ int main()
     // Enable sensors and actuators, only once
     reset();
 
-    // Read the initial configuration for this robot
-    RobotConfig initialConfig = readRobotConfig();
-
     // Main loop
     while (true)
     {
         // Wait for PSO parameters from supervisor
         PSOParams params = getParamsFromSupervisor();
 
-        // Re-initialize the robot
-        resetRobot(initialConfig);
+        // At this point the supervisor will have reset the robots.
 
         // Run the simulation for a while according to the info sent by the supervisor
         simulate(params);
