@@ -1,5 +1,7 @@
+#include <array>
+#include <algorithm>
 #include <iostream>
-#include <vector>
+#include <iterator>
 #include <cstdio> // For sscanf
 #include <cmath>
 #include <string>
@@ -10,6 +12,7 @@
 #include <webots/distance_sensor.h>
 #include <webots/emitter.h>
 #include <webots/receiver.h>
+#include <webots/supervisor.h>
 
 #include "../common/PSOParams.hpp"
 #include "vec2.h"
@@ -334,10 +337,13 @@ void reynoldsRules(const PSOParams &params)
 
 /*
  * Configuration of an e-puck, such as position, rotation, and so on
+ *
+ * see https://www.cyberbotics.com/guide/using-numerical-optimization-methods.php
  */
 struct RobotConfig
 {
-    // TODO implement me
+    std::array<double, 3> translation;
+    std::array<double, 4> rotation;
 };
 
 /*
@@ -345,8 +351,20 @@ struct RobotConfig
  */
 RobotConfig readRobotConfig()
 {
-    // TODO implement me
-    return {};
+    RobotConfig config;
+
+    // 'supervisor' here is NOT the PSO supervisor!
+    WbNodeRef node = wb_supervisor_node_get_from_def(robotName.c_str());
+
+    WbFieldRef transField = wb_supervisor_node_get_field(node, "translation");
+    double const* translation = wb_supervisor_field_get_sf_vec3f(transField);
+    std::copy_n(translation, 3, std::begin(config.translation));
+
+    WbFieldRef rotField = wb_supervisor_node_get_field(node, "rotation");
+    double const* rotation = wb_supervisor_field_get_sf_rotation(rotField);
+    std::copy_n(rotation, 4, std::begin(config.rotation));
+
+    return config;
 }
 
 /*
@@ -354,7 +372,22 @@ RobotConfig readRobotConfig()
  */
 void resetRobot(RobotConfig const& config)
 {
-    // TODO implement me
+    // 'supervisor' here is NOT the PSO supervisor!
+    WbNodeRef node = wb_supervisor_node_get_from_def(robotName.c_str());
+
+    WbFieldRef transField = wb_supervisor_node_get_field(node, "translation");
+    wb_supervisor_field_set_sf_vec3f(transField, config.translation.data());
+
+    WbFieldRef rotField = wb_supervisor_node_get_field(node, "rotation");
+    wb_supervisor_field_set_sf_rotation(rotField, config.rotation.data());
+
+    // NOTE: motors are not reset. This might create a slight imperfection for the
+    // few first iterations but nothing significant for the overall fitness measure.
+
+    // Finally, reset the physics module
+    wb_supervisor_simulation_reset_physics();
+
+    std::cout << "Robot " << robotName << " was physically reset" << std::endl;
 }
 
 /*
@@ -438,11 +471,11 @@ void simulate(PSOParams const& params)
  */
 int main()
 {
-    // Read the initial configuration for this robot
-    RobotConfig initialConfig = readRobotConfig();
-
     // Enable sensors and actuators, only once
     reset();
+
+    // Read the initial configuration for this robot
+    RobotConfig initialConfig = readRobotConfig();
 
     // Main loop
     while (true)
