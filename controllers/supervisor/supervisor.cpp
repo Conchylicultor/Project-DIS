@@ -318,7 +318,7 @@ double simulate()
 {
   double fitnessGlobal = 0.0;
 
-  for (std::size_t nbTimestep = 0; nbTimestep < PSOParams::ITERATIONS; ++nbTimestep)
+  for (std::size_t nbTimestep = 0; nbTimestep < PSO_ITERATIONS; ++nbTimestep)
   {
     // Which supervisor are we ?
     PRINT_INFO
@@ -383,6 +383,7 @@ double simulate()
 int main(int argc, char *args[])
 {
   cout << "Loading supervisor..." << endl;
+  
   reset();
 
   // Read the initial configuration for all robots
