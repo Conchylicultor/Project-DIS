@@ -383,6 +383,31 @@ static void reset()
 }
 
 /*
+ * Reinitialise local variables before a pso iteration
+ */
+void reset_run()
+{
+    // Loading the distances sensors
+    for(int i=0; i<NB_SENSORS;i++) {
+        ds[i]=wb_robot_get_device(string("ps" + std::to_string(i)).c_str());	// the device name is specified in the world file
+        wb_distance_sensor_enable(ds[i], TIME_STEP);
+    }
+    
+    // Reset all relative coordinates
+    myPosition = Vec2(0.0,0.0);
+    myPrevPosition = Vec2(0.0,0.0);
+    mySpeed = Vec2(0.0,0.0);
+    myTheta = 0.0;
+    
+    for(int i = 0 ; i < FLOCK_SIZE ; ++i)
+    {
+      neighboursPos[i] = Vec2(0.0,0.0);
+      neighboursPrevPos[i] = Vec2(0.0,0.0);
+      neighboursRelativeSpeed[i] = Vec2(0.0,0.0);
+    }
+}
+
+/*
  * Apply simulation with the given parameters
  */
 void simulate(PSOParams const& params)
@@ -447,6 +472,8 @@ int main()
 
         std::cout << "Received the following PSO parameters from supervisor: "
                   << params << std::endl;
+                  
+        reset_run(); // We restart from the begining
 
         // At this point the supervisor will have reset the robots.
 
