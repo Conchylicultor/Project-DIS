@@ -266,7 +266,8 @@ void resetAllRobots(RobotConfigs const& configs)
  */
 void sendParamsToRobots(PSOParams const& params)
 {
-    void const* buffer = reinterpret_cast<void const*>(&params);
+    PSOParams restoredParams = restoreParams(params); // De-normalize the params
+    void const* buffer = reinterpret_cast<void const*>(&restoredParams);
     int const size = sizeof(PSOParams);
 
     wb_emitter_send(emitter, buffer, size);
@@ -389,7 +390,7 @@ int main(int argc, char *args[])
   // Read the initial configuration for all robots
   RobotConfigs initialConfigs = readAllRobotsConfig();
 
-  PSOParams params = DEFAULT_PSOPARAMS;
+  PSOParams params = normalizeParams(DEFAULT_PSOPARAMS);
 
   while (true)
   {
@@ -397,7 +398,7 @@ int main(int argc, char *args[])
     resetAllRobots(initialConfigs);
 
     // Let robots know the new PSO parameters
-    sendParamsToRobots(params);
+    sendParamsToRobots(params); // The params are "De-normalized" inside the function
 
     // Run the simulation for a while and compute the fitness
     double fitness = simulate();
