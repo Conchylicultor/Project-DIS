@@ -51,7 +51,7 @@ Vec2 neighboursPos[FLOCK_SIZE]; // Relative positions of the neighbours
 Vec2 neighboursPrevPos[FLOCK_SIZE];
 Vec2 neighboursRelativeSpeed[FLOCK_SIZE];
 
-Vec2 migrationVec(0.0,-20.0); // TODO: Change our migration vector ?
+const Vec2 migrationVec(0.0,-20.0); // TODO: Change our migration vector ?
 
 // -------------------
 // Obstacle avoidance functions

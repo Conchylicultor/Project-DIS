@@ -67,19 +67,19 @@ struct Vec2
         return *this;
     }
     
-    Vec2 operator-(const Vec2& other)
+    Vec2 operator-(const Vec2& other) const
     {
         return Vec2(x - other.x,
                     y - other.y);
     }
     
-    Vec2 operator/(double factor)
+    Vec2 operator/(double factor) const
     {
         return Vec2(x/factor,
                     y/factor);
     }
     
-    Vec2 operator*(double factor)
+    Vec2 operator*(double factor) const
     {
         return Vec2(x*factor,
                     y*factor);
