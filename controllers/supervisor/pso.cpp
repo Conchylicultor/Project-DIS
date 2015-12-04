@@ -256,23 +256,27 @@ void loadState(std::string const& filename, std::size_t& t, Positions& positions
 
     for (std::size_t i = 0; i < size; ++i)
     {
+        positions[i].resize(6);
         in >> trash >> positions[i];
     }
     ensureValid("positions");
 
     for (std::size_t i = 0; i < size; ++i)
     {
+        speeds[i].resize(6);
         in >> trash >> speeds[i];
     }
     ensureValid("speeds");
 
     for (std::size_t i = 0; i < size; ++i)
     {
+        personalBests[i].first.resize(6);
         in >> trash >> personalBests[i].second
            >> trash >> personalBests[i].first;
     }
     ensureValid("personal bests");
 
+    globalBest.first.resize(6);
     in >> trash >> globalBest.second
        >> trash >> globalBest.first;
     ensureValid("global best");
@@ -320,8 +324,13 @@ int main(int, char const** argv) try
     }
     else
     {
+        std::cout << "Randomly initialising PSO state" << std::endl;
+
         initilisePSO(computeFitness, positions, speeds, personalBests, globalBest);
+        saveState(basepath + SAVE_FILE, t, positions, speeds, personalBests, globalBest);
     }
+
+    std::cout << "Initial best fitness: " << globalBest.second << std::endl;
 
     // Run PSO optimisation for a fixed number of iterations
     for (t = 0; t < MAX_ITERATIONS; ++t)
