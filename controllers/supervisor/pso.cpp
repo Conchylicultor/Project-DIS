@@ -1,8 +1,11 @@
 
 #include <algorithm>
 #include <array>
+#include <fstream>
+#include <functional>
 #include <iostream>
 #include <limits>
+#include <string>
 #include <utility>
 #include <valarray>
 
@@ -17,11 +20,23 @@
 
 using Position  = std::valarray<double>;
 using Speed     = std::valarray<double>;
-using Modulator = Speed; // See PHI_* below
+using Modulator = Speed; // See PHI_* in main PSO loop
 using Fitness   = double;
 
 using PositionWithFitness = std::pair<Position, Fitness>;
 
+using Evalutor  = std::function<Fitness(Position const&)>;
+
+std::size_t constexpr SWARM_SIZE = 30;
+std::size_t constexpr MAX_ITERATIONS = 100;
+double constexpr OMEGA = 2;   // impact of the particle's speed (inertia)
+double constexpr PHI_P = 1.5; // impact of the personal best
+double constexpr PHI_G = 1.5; // impact of the global best
+// NOTE: PHI_P and PHI_G are scaled with x ~ U(0, 1).
+
+using Positions = std::array<Position, SWARM_SIZE>;
+using Speeds    = std::array<Speed,    SWARM_SIZE>;
+using PwFs      = std::array<PositionWithFitness, SWARM_SIZE>;
 
 /*
  * Create some random PSO parameters
@@ -90,6 +105,31 @@ PositionWithFitness selectBest(PositionWithFitness const& p, PositionWithFitness
 
 
 /*
+ * Perform random initialisation of the particles
+ */
+void initilisePSO(Evalutor const& computeFitness, Positions& positions, Speeds& speeds,
+                  PwFs& personalBests, PositionWithFitness& globalBest)
+{
+    // Generate random particles (position and speed)
+    std::generate(std::begin(positions), std::end(positions), createRandomPosition);
+    std::generate(std::begin(speeds),    std::end(speeds),    createRandomSpeed);
+
+    // Update initial beliefs
+    globalBest.second = std::numeric_limits<Fitness>::lowest(); // cannot be worst than that
+    for (std::size_t i = 0; i < positions.size(); ++i)
+    {
+        auto fitness = computeFitness(positions[i]);
+        std::cout << i << "-th particle: initial fitness = " << fitness << std::endl;
+
+        // initialise personal best to the only known particle
+        personalBests[i] = { positions[i], fitness };
+
+        globalBest = selectBest(globalBest, personalBests[i]);
+    }
+}
+
+
+/*
  * Main function.
  */
 int main(int, char**)
@@ -108,38 +148,13 @@ int main(int, char**)
         return simulate(initialConfigs, toParams(p));
     };
 
-    // PSO algorithm:
-    std::size_t constexpr SWARM_SIZE = 30;
-    std::size_t constexpr MAX_ITERATIONS = 100;
-    double constexpr OMEGA = 2;   // impact of the particle's speed (inertia)
-    double constexpr PHI_P = 1.5; // impact of the personal best
-    double constexpr PHI_G = 1.5; // impact of the global best
-    // NOTE: PHI_P and PHI_G are scaled with x ~ U(0, 1).
+    // PSO states:
+    Positions positions;               // particles' position
+    Speeds speeds;                     // particles' speed
+    PwFs personalBests;                // "personal" best for each particle
+    PositionWithFitness globalBest;    // "global" best, assuming infinite range of neighbourhood
 
-    std::array<Position, SWARM_SIZE> positions; // particles' position
-    std::array<Speed,    SWARM_SIZE> speeds;    // particles' speed
-
-    std::array<PositionWithFitness, SWARM_SIZE> personalBests; // "personal" best for each particle
-
-    // Assuming infinite range of neighbourhood
-    PositionWithFitness globalBest; // "global" best
-
-    // Generate random particles (position and speed)
-    std::generate(std::begin(positions), std::end(positions), createRandomPosition);
-    std::generate(std::begin(speeds),    std::end(speeds),    createRandomSpeed);
-
-    // Update initial beliefs
-    globalBest.second = std::numeric_limits<Fitness>::lowest(); // cannot be worst than that
-    for (std::size_t i = 0; i < positions.size(); ++i)
-    {
-        auto fitness = computeFitness(positions[i]);
-        std::cout << i << "-th particle: initial fitness = " << fitness << std::endl;
-
-        // initialise personal best to the only known particle
-        personalBests[i] = { positions[i], fitness };
-
-        globalBest = selectBest(globalBest, personalBests[i]);
-    }
+    initilisePSO(computeFitness, positions, speeds, personalBests, globalBest);
 
     // Run PSO optimisation for a fixed number of iterations
     for (std::size_t t = 0; t < MAX_ITERATIONS; ++t)
