@@ -28,11 +28,11 @@ struct PSOParams
 
     // Migration
     double migrationWeight;
+
+    // Common to all parameters: the duration of the simulation during which the fitness is evaluated
+    static std::size_t const SIMULATION_STEPS = 1000; // * TIME_STEP = total duration [ms]
 };
 
-// Common to all parameters: the duration of the simulation during which the fitness is evaluated
-static std::size_t const PSO_ITERATIONS = 1000; // * TIME_STEP = total duration [ms]
-// TODO increase this number
 
 inline std::ostream& operator<<(std::ostream& out, PSOParams const& params)
 {

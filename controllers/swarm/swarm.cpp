@@ -424,7 +424,8 @@ void simulate(PSOParams const& params)
     bool thresholdSpeedInstinct = false;
     int maxSensorValue = 0;
 
-    for (std::size_t i = 0; i < PSO_ITERATIONS; ++i) {
+    for (std::size_t i = 0; i < PSOParams::SIMULATION_STEPS; ++i)
+    {
         // Braitenberg obstacle avoidance
         braitenbergObstacle(wheelSpeedBraitenberg, thresholdSpeedInstinct, maxSensorValue);
 

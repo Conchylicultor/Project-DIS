@@ -309,7 +309,7 @@ double simulate(RobotConfigs const& initialConfigs, PSOParams const& params)
 
   double fitnessGlobal = 0.0;
 
-  for (std::size_t nbTimestep = 0; nbTimestep < PSO_ITERATIONS; ++nbTimestep)
+  for (std::size_t nbTimestep = 0; nbTimestep < PSOParams::SIMULATION_STEPS; ++nbTimestep)
   {
     // Which supervisor are we ?
     PRINT_INFO
