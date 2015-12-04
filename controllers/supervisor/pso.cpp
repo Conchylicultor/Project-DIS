@@ -111,7 +111,8 @@ PositionWithFitness selectBest(PositionWithFitness const& p, PositionWithFitness
  * Perform random initialisation of the particles
  */
 void initilisePSO(Evalutor const& computeFitness, Positions& positions, Speeds& speeds,
-                  PwFs& personalBests, PositionWithFitness& globalBest)
+                  PwFs& personalBests, PositionWithFitness& globalBest,
+                  PositionWithFitness& absoluteBest)
 {
     // Generate random particles (position and speed)
     std::generate(std::begin(positions), std::end(positions), createRandomPosition);
@@ -129,6 +130,8 @@ void initilisePSO(Evalutor const& computeFitness, Positions& positions, Speeds& 
 
         globalBest = selectBest(globalBest, personalBests[i]);
     }
+
+    absoluteBest = globalBest;
 }
 
 
@@ -178,7 +181,7 @@ void copyFile(std::string const& source, std::string const& dest)
  */
 void saveState(std::string const& filename, std::size_t t, Positions const& positions,
                Speeds const& speeds, PwFs const& personalBests,
-               PositionWithFitness const& globalBest)
+               PositionWithFitness const& globalBest, PositionWithFitness const& absoluteBest)
 {
     // We don't throw exception from this function: we don't want to kill the whole program
     // for that.
@@ -206,6 +209,9 @@ void saveState(std::string const& filename, std::size_t t, Positions const& posi
     out << "globalBest_fitness " << globalBest.second << "\n"
         << "globalBest_position " << globalBest.first << "\n";
 
+    out << "absoluteBest_fitness " << absoluteBest.second << "\n"
+        << "absoluteBest_position " << absoluteBest.first << "\n";
+
     out << std::flush;
 
     if (!out)
@@ -221,7 +227,8 @@ void saveState(std::string const& filename, std::size_t t, Positions const& posi
  * Load saved states
  */
 void loadState(std::string const& filename, std::size_t& t, Positions& positions, Speeds& speeds,
-               PwFs& personalBests, PositionWithFitness& globalBest)
+               PwFs& personalBests, PositionWithFitness& globalBest,
+               PositionWithFitness& absoluteBest)
 {
     // In case of error we throw a runtime_error
     std::ifstream in(filename);
@@ -256,7 +263,7 @@ void loadState(std::string const& filename, std::size_t& t, Positions& positions
 
     for (std::size_t i = 0; i < size; ++i)
     {
-        positions[i].resize(6);
+        positions[i].resize(6); // number of dimensions
         in >> trash >> positions[i];
     }
     ensureValid("positions");
@@ -280,6 +287,12 @@ void loadState(std::string const& filename, std::size_t& t, Positions& positions
     in >> trash >> globalBest.second
        >> trash >> globalBest.first;
     ensureValid("global best");
+
+    absoluteBest.first.resize(6);
+    in >> trash >> absoluteBest.second
+       >> trash >> absoluteBest.first;
+    ensureValid("absolute best");
+
 }
 
 
@@ -315,26 +328,32 @@ int main(int, char const** argv) try
     Speeds speeds;                     // particles' speed
     PwFs personalBests;                // "personal" best for each particle
     PositionWithFitness globalBest;    // "global" best, assuming infinite range of neighbourhood
+    PositionWithFitness absoluteBest;  // best of all the particles we have seen so far
     std::size_t t = 0;
 
     if (isThereFile(basepath + SAVE_FILE))
     {
-        loadState(basepath + SAVE_FILE, t, positions, speeds, personalBests, globalBest);
+        loadState(basepath + SAVE_FILE, t, positions, speeds, personalBests, globalBest, absoluteBest);
         std::cout << "Loaded from " << SAVE_FILE << std::endl;
     }
     else
     {
         std::cout << "Randomly initialising PSO state" << std::endl;
 
-        initilisePSO(computeFitness, positions, speeds, personalBests, globalBest);
-        saveState(basepath + SAVE_FILE, t, positions, speeds, personalBests, globalBest);
+        initilisePSO(computeFitness, positions, speeds, personalBests, globalBest, absoluteBest);
+        saveState(basepath + SAVE_FILE, t, positions, speeds, personalBests, globalBest, absoluteBest);
     }
 
-    std::cout << "Initial best fitness: " << globalBest.second << std::endl;
+    std::cout << "Initial absolute best fitness: " << absoluteBest.second << std::endl;
 
     // Run PSO optimisation for a fixed number of iterations
-    for (t = 0; t < MAX_ITERATIONS; ++t)
+    for (; t < MAX_ITERATIONS; ++t)
     {
+        auto sumOfSpeeds = 0.0;
+
+        PositionWithFitness nextGlobalBest;
+        nextGlobalBest.second = std::numeric_limits<Fitness>::lowest();
+
         for (std::size_t i = 0; i < positions.size(); ++i)
         {
             // Update i-th particle's speed and position
@@ -351,18 +370,28 @@ int main(int, char const** argv) try
             // Update our knowledge of the search space
             auto candidate = PositionWithFitness{ positions[i], fitness };
             personalBests[i] = selectBest(personalBests[i], candidate);
-            globalBest = selectBest(globalBest, candidate);
+            nextGlobalBest = selectBest(nextGlobalBest, candidate);
 
             std::cout << "Iteration " << t
                       << ", particle " << i
                       << " has fitness " << fitness
                       << std::endl;
+
+            sumOfSpeeds += std::sqrt((speeds[i].apply([](double x) { return x * x; })).sum());
         }
+
+        absoluteBest = selectBest(absoluteBest, nextGlobalBest);
+        globalBest = nextGlobalBest;
+
+        auto avgOfSpeeds = sumOfSpeeds / positions.size();
+
+        std::cout << "\n\nAVG PSO SPEED: " << avgOfSpeeds << "\n" << std::endl;
 
         std::cout << "\n\n" << std::string(80, '*') << "\n"
                   << "\tEnd of iteration " << t
-                  << " with best fitness of " << globalBest.second
-                  << " and best settings: " << toParams(globalBest.first) << "\n"
+                  << " with absolute best fitness of " << absoluteBest.second
+                  << " and best settings: " << toParams(absoluteBest.first) << "\n"
+                  << " global best has fitness of " << globalBest.second << "\n"
                   << std::string(80, '*') << "\n\n"
                   << std::endl;
 
@@ -373,7 +402,7 @@ int main(int, char const** argv) try
             copyFile(basepath + SAVE_FILE, basepath + SAVE_FILE + ".bak");
         }
 
-        saveState(basepath + SAVE_FILE, t, positions, speeds, personalBests, globalBest);
+        saveState(basepath + SAVE_FILE, t, positions, speeds, personalBests, globalBest, absoluteBest);
         std::cout << "Saved to " << SAVE_FILE << std::endl;
     }
 
