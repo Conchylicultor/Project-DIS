@@ -161,7 +161,19 @@ int main(int, char**)
             auto candidate = PositionWithFitness{ positions[i], fitness };
             personalBests[i] = selectBest(personalBests[i], candidate);
             globalBest = selectBest(globalBest, candidate);
+
+            std::cout << "Iteration " << t
+                      << ", particle " << i
+                      << " has fitness " << fitness
+                      << std::endl;
         }
+
+        std::cout << "\n\n" << std::string(80, '*') << "\n"
+                  << "\tEnd of iteration " << t
+                  << " with best fitness of " << globalBest.second
+                  << " and best settings: " << toParams(globalBest.first) << "\n"
+                  << std::string(80, '*') << "\n\n"
+                  << std::endl;
     }
 
     std::cout << "Best fitness: " << globalBest.second << "\n"
