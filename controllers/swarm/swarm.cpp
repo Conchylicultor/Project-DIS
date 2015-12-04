@@ -19,6 +19,8 @@
 
 using namespace std;
 
+//#define PRINT_DEBUG
+
 
 // Some remarks:
 // Probably only works in a noise free environment
@@ -342,7 +344,7 @@ void reynoldsRules(const PSOParams &params)
   mySpeed = cohesion * params.cohesionWeight;
   mySpeed +=  dispersion * params.spearationWeight;
   mySpeed +=  consistency * params.alignmentWeight;
-  mySpeed += (migrationVec-myPosition) * params.migrationWeigth; // TODO: Change the migration policy ??
+  mySpeed += (migrationVec-myPosition) * params.migrationWeight; // TODO: Change the migration policy ??
 }
 
 // -------------------
@@ -392,13 +394,13 @@ void reset_run()
         ds[i]=wb_robot_get_device(string("ps" + std::to_string(i)).c_str());	// the device name is specified in the world file
         wb_distance_sensor_enable(ds[i], TIME_STEP);
     }
-    
+
     // Reset all relative coordinates
     myPosition = Vec2(0.0,0.0);
     myPrevPosition = Vec2(0.0,0.0);
     mySpeed = Vec2(0.0,0.0);
     myTheta = 0.0;
-    
+
     for(int i = 0 ; i < FLOCK_SIZE ; ++i)
     {
       neighboursPos[i] = Vec2(0.0,0.0);
@@ -412,7 +414,9 @@ void reset_run()
  */
 void simulate(PSOParams const& params)
 {
+#ifdef PRINT_DEBUG
     std::cout << "Starting simulation with PSO parameters: " << params << std::endl;
+#endif
 
     int wheelSpeed[2] = { 0, 0 };            // Left and right wheel speed
     int wheelSpeedBraitenberg[2] = { 0, 0 }; // Left and right wheel speed
@@ -470,9 +474,6 @@ int main()
         // Wait for PSO parameters from supervisor
         PSOParams params = getParamsFromSupervisor();
 
-        std::cout << "Received the following PSO parameters from supervisor: "
-                  << params << std::endl;
-                  
         reset_run(); // We restart from the begining
 
         // At this point the supervisor will have reset the robots.
