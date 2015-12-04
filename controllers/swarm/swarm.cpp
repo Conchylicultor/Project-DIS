@@ -317,6 +317,7 @@ void simulate(PSOParams const& params)
 #endif
 
     int wheelSpeed[2] = { 0, 0 }; // Left and right wheel speed
+    Vec2 prevCenterOfMass = { 0, 0 };
 
     for (std::size_t i = 0; i < PSOParams::SIMULATION_STEPS; ++i)
     {
@@ -335,15 +336,18 @@ void simulate(PSOParams const& params)
         // 1) Use IR sensors to detect obstacles and avoid them
         // TODO
 
-        // 2) Use relative positioning information to compute the migration direction
-        // TODO
-
         // 3) Use relative positioning information to compute center of mass
         auto const centerOfMass = computeCenterOfMass();
+        auto const cohesion = centerOfMass;
+
+        // 2) Use relative positioning information to compute the migration direction
+        auto const aligmnent = prevCenterOfMass - centerOfMass;
 
         // Combine those tree rules
         // TODO
-        auto const direction = params.cohesionWeight * centerOfMass;
+        auto const direction =
+            params.alignmentWeight * aligmnent +
+            params.cohesionWeight * cohesion;
 
         // Convert that into wheel speed
         // Update position
@@ -356,6 +360,7 @@ void simulate(PSOParams const& params)
 
         // Continue one step
         wb_robot_step(TIME_STEP);
+        prevCenterOfMass = centerOfMass;
     }
 }
 
@@ -373,7 +378,7 @@ int main()
         // Wait for PSO parameters from supervisor
         PSOParams params = getParamsFromSupervisor();
 
-        reset_run(); // We restart from the begining
+        reset_run(); // We restart from the beginning
 
         // At this point the supervisor will have reset the robots.
 

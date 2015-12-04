@@ -95,6 +95,13 @@ inline Vec2 operator*(double factor, Vec2 const& v)
     return v * factor;
 }
 
+inline Vec2 operator+(Vec2 const& a, Vec2 const& b)
+{
+    Vec2 r = a;
+    r += b;
+    return r;
+}
+
 inline double norm(const Vec2 &v)
 {
   return std::sqrt(v[0]*v[0] + v[1]*v[1]);
