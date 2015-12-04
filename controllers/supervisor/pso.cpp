@@ -28,11 +28,11 @@ using PositionWithFitness = std::pair<Position, Fitness>;
 
 using Evalutor  = std::function<Fitness(Position const&)>;
 
-std::size_t constexpr SWARM_SIZE = 30;
-std::size_t constexpr MAX_ITERATIONS = 100;
-double constexpr OMEGA = 2;   // impact of the particle's speed (inertia)
-double constexpr PHI_P = 1.5; // impact of the personal best
-double constexpr PHI_G = 1.5; // impact of the global best
+std::size_t constexpr SWARM_SIZE = 15;
+std::size_t constexpr MAX_ITERATIONS = 10000;
+double constexpr OMEGA = 1.0;  // impact of the particle's speed (inertia)
+double constexpr PHI_P = 0.20; // impact of the personal best
+double constexpr PHI_G = 0.25; // impact of the global best
 // NOTE: PHI_P and PHI_G are scaled with x ~ U(0, 1).
 
 std::string const& SAVE_FILE = "results.txt";
@@ -63,12 +63,12 @@ Position createRandomPosition()
 Speed createRandomSpeed()
 {
     return {
-        uniform(-1.0, 1.0), // cohesion threshold
-        uniform(-1.0, 1.0), // cohesion weight
-        uniform(-1.0, 1.0), // separation threshold
-        uniform(-1.0, 1.0), // separation weight
-        uniform(-1.0, 1.0), // alignment weight
-        uniform(-1.0, 1.0), // migration weight
+        uniform(-0.1, 0.1), // cohesion threshold
+        uniform(-0.1, 0.1), // cohesion weight
+        uniform(-0.1, 0.1), // separation threshold
+        uniform(-0.1, 0.1), // separation weight
+        uniform(-0.1, 0.1), // alignment weight
+        uniform(-0.1, 0.1), // migration weight
     };
 }
 
