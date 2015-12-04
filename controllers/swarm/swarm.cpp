@@ -55,63 +55,6 @@ Vec2 neighboursRelativeSpeed[FLOCK_SIZE];
 
 const Vec2 migrationVec(0.0,-20.0); // TODO: Change our migration vector ?
 
-// -------------------
-// Obstacle avoidance functions
-// -------------------
-
-// Braitenberg parameters
-const int MIN_SENS = 350; // Minimum sensibility value
-const int MAX_SENS = 4096; // Maximum sensibility value
-const int weightMatrix[2][NB_SENSORS] = {{-72,-58,-36,8,10,36,28,18},
-                                         {17,29,34,10,8,-38,-56,-76}}; // Braitenberg weight
-
-// const int weightMatrix[2][NB_SENSORS] = {{-72,-58,-36,8,10,36,28,18},
-//                                         {18,28,36,10,8,-36,-58,-72}}; // Braitenberg weight
-
-/*
- * Try avoiding obstacles
- */
-void braitenbergObstacle(int wheelSpeed[2], bool &thresholdSpeedInstinct, int &maxSensorValue)
-{
-  // Reinitialisation
-  int distance = 0;
-  int sumSensors = 0;
-  maxSensorValue = 0;
-
-  wheelSpeed[0] = 0;
-  wheelSpeed[1] = 0;
-
-  // Compute the weighted behavior
-  for(int i=0 ; i<NB_SENSORS ; i++)
-  {
-    distance = wb_distance_sensor_get_value(ds[i]); //Read sensor values
-
-    // Weighted sum of distance sensor values for Braitenberg vehicle
-    wheelSpeed[0] += weightMatrix[0][i] * distance; // Left
-    wheelSpeed[1] += weightMatrix[1][i] * distance; // Right
-
-    // Update the maximum sensor value and sumSensors
-    if(distance > maxSensorValue)
-    {
-      maxSensorValue = distance;
-    }
-    sumSensors += distance;
-  }
-
-  // Adapt the speed
-  wheelSpeed[0] /= MIN_SENS;
-  wheelSpeed[1] /= MIN_SENS;
-
-  // Define the speed instinct
-  if (sumSensors > NB_SENSORS*MIN_SENS)
-  {
-    thresholdSpeedInstinct = true;
-  }
-  else
-  {
-    thresholdSpeedInstinct = false;
-  }
-}
 
 // -------------------
 // Wheels related functions
@@ -286,66 +229,21 @@ PSOParams getParamsFromSupervisor()
 }
 
 // -------------------
-// Reynolds functions
+// Reynolds' Rules
 // -------------------
 
-
-/*
- * Compute the desired vector speed using Reynolds rules
- */
-void reynoldsRules(const PSOParams &params)
+Vec2 computeCenterOfMass()
 {
-  Vec2 relAvgLoc;	// Flock average positions
-  Vec2 relAvgSpeed;	// Flock average speeds
-
-  Vec2 cohesion;
-  Vec2 dispersion;
-  Vec2 consistency;
-
-  // Compute averages over the whole flock
-  for(int i=0 ; i<FLOCK_SIZE ; i++)
-  {
-    // Don't consider yourself for the average
-    if (i != robotId)
+    Vec2 center;
+    for (auto const& p : neighboursPos)
     {
-      relAvgSpeed += neighboursRelativeSpeed[i];
-      relAvgLoc += neighboursPos[i];
+        center += p;
     }
-  }
-  relAvgSpeed /= (FLOCK_SIZE-1);
-  relAvgLoc /= (FLOCK_SIZE-1); // -1 because we don't take ourself in account
 
-
-  // Rule 1 - Aggregation/Cohesion: move towards the center of mass
-
-  if (norm(relAvgLoc) > params.cohesionThreshold) // If center of mass is too far
-  {
-    cohesion = relAvgLoc ;  // Relative distance to the center of the swarm
-  }
-
-  // Rule 2 - Dispersion/Separation: keep far enough from flockmates
-
-  for (int i=0 ; i<FLOCK_SIZE; i++)
-  {
-    if (i != robotId) // Loop on flockmates only
-    {
-      // If neighbor k is too close
-      if (norm(neighboursPos[i]) < params.separationThreshold)
-      {
-        dispersion -= neighboursPos[i]; // Relative distance to k
-      }
-    }
-  }
-
-  // Rule 3 - Consistency/Alignment: match the speeds of flockmates
-  consistency =  relAvgSpeed; // difference speed to the average
-
-  // Aggregation of all behaviors with relative influence determined by weights
-  mySpeed = cohesion * params.cohesionWeight;
-  mySpeed +=  dispersion * params.spearationWeight;
-  mySpeed +=  consistency * params.alignmentWeight;
-  mySpeed += (migrationVec-myPosition) * params.migrationWeight; // TODO: Change the migration policy ??
+    center /= FLOCK_SIZE;
+    return center;
 }
+
 
 // -------------------
 // Main functions
@@ -418,40 +316,40 @@ void simulate(PSOParams const& params)
     std::cout << "Starting simulation with PSO parameters: " << params << std::endl;
 #endif
 
-    int wheelSpeed[2] = { 0, 0 };            // Left and right wheel speed
-    int wheelSpeedBraitenberg[2] = { 0, 0 }; // Left and right wheel speed
-
-    bool thresholdSpeedInstinct = false;
-    int maxSensorValue = 0;
+    int wheelSpeed[2] = { 0, 0 }; // Left and right wheel speed
 
     for (std::size_t i = 0; i < PSOParams::SIMULATION_STEPS; ++i)
     {
-        // Braitenberg obstacle avoidance
-        braitenbergObstacle(wheelSpeedBraitenberg, thresholdSpeedInstinct, maxSensorValue);
+        myPrevPosition = myPosition;
 
         // Emission/reception between flock members
         ping(); // Indicate our presence
         pong(); // Get informations from other robots
 
+        // Reynold' rules:
+        // 1) separation: steer to avoid crowding local flockmates or obstacles
+        // 2) alignment: steer towards the average heading of local flockmates
+        // 3) cohesion: steer to move toward the average position (center of mass) of local
+        //    flockmates
+
+        // 1) Use IR sensors to detect obstacles and avoid them
+        // TODO
+
+        // 2) Use relative positioning information to compute the migration direction
+        // TODO
+
+        // 3) Use relative positioning information to compute center of mass
+        auto const centerOfMass = computeCenterOfMass();
+
+        // Combine those tree rules
+        // TODO
+        auto const direction = params.cohesionWeight * centerOfMass;
+
+        // Convert that into wheel speed
         // Update position
-        myPrevPosition = myPosition;
         updateCurrentPosition(wheelSpeed);
 
-        // Use received information for the Reynolds behavior
-        reynoldsRules(params);
-
-        // Compute the wheels speed
-        // Use the desired speed and orientation to compute the wheelSpeed
-        computeWheelSpeeds(wheelSpeed, mySpeed, myTheta);
-
-        // Add Braitenberg (weighted with Reynolds)
-        if (thresholdSpeedInstinct)
-        {
-            wheelSpeed[0] -= wheelSpeed[0] * maxSensorValue / (2 * MAX_SENS);
-            wheelSpeed[1] -= wheelSpeed[1] * maxSensorValue / (2 * MAX_SENS);
-        }
-        wheelSpeed[0] += wheelSpeedBraitenberg[0];
-        wheelSpeed[1] += wheelSpeedBraitenberg[1];
+        computeWheelSpeeds(wheelSpeed, direction, myTheta);
 
         // Set speed
         wb_differential_wheels_set_speed(wheelSpeed[0], wheelSpeed[1]);

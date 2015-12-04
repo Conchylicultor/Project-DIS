@@ -1,6 +1,7 @@
 #ifndef VEC2_H
 #define VEC2_H
 
+#include <cmath>
 #include <iostream>
 #include <stdexcept>
 
@@ -11,14 +12,14 @@ struct Vec2
 {
     Vec2() : x(0.0f), y(0.0f) {}
     Vec2(double argX, double argY) : x(argX), y(argY) {}
-    
+
     Vec2& operator=(const Vec2& other)
     {
         x = other.x;
         y = other.y;
         return *this;
     }
-    
+
     const double &operator[](unsigned int index) const
     {
         if (index == 0)
@@ -28,7 +29,7 @@ struct Vec2
         std::cout << "ERROR: Wrong vector index: " << index << std::endl;
         throw std::out_of_range("Invalid index");
     }
-    
+
     double &operator[](unsigned int index)
     {
         if (index == 0)
@@ -38,65 +39,71 @@ struct Vec2
         std::cout << "ERROR: Wrong vector index: " << index << std::endl;
         throw std::out_of_range("Invalid index");
     }
-    
+
     Vec2& operator*=(const double s)
     {
         x *= s;
         y *= s;
         return *this;
     }
-    
+
     Vec2& operator/=(const double s)
     {
         x /= s;
         y /= s;
         return *this;
     }
-    
+
     Vec2& operator-=(const Vec2& v)
     {
         x -= v.x;
         y -= v.y;
         return *this;
     }
-    
+
     Vec2& operator+=(const Vec2& v)
     {
         x += v.x;
         y += v.y;
         return *this;
     }
-    
+
     Vec2 operator-(const Vec2& other) const
     {
         return Vec2(x - other.x,
                     y - other.y);
     }
-    
+
     Vec2 operator/(double factor) const
     {
         return Vec2(x/factor,
                     y/factor);
     }
-    
+
     Vec2 operator*(double factor) const
     {
         return Vec2(x*factor,
                     y*factor);
     }
-    
+
     double x;
     double y;
 };
 
-double norm(const Vec2 &v)
+inline Vec2 operator*(double factor, Vec2 const& v)
+{
+    return v * factor;
+}
+
+inline double norm(const Vec2 &v)
 {
   return std::sqrt(v[0]*v[0] + v[1]*v[1]);
 }
 
-std::ostream& operator<<(std::ostream& out, Vec2 const& p)
+inline std::ostream& operator<<(std::ostream& out, Vec2 const& p)
 {
     return out << "{ " << p.x << ", " << p.y << " }";
 }
 
 #endif
+
