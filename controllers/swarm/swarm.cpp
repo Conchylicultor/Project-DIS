@@ -50,8 +50,6 @@ Vec2 mySpeed(0.0,0.0);
 double myTheta = 0.0; // TODO we could use a compass instead
 
 Vec2 neighboursPos[FLOCK_SIZE]; // Relative positions of the neighbours
-Vec2 neighboursPrevPos[FLOCK_SIZE];
-Vec2 neighboursRelativeSpeed[FLOCK_SIZE];
 
 const Vec2 migrationVec(0.0,-20.0); // TODO: Change our migration vector ?
 
@@ -181,16 +179,12 @@ void pong()
     double dirZ = dir[2];
 
     double theta = -std::atan2(dirZ, dirX);
-    theta += myTheta; // Relative orientation of our neighbour
 
     double distance = std::sqrt(1.0 / signalStrength);
 
-    neighboursPrevPos[receivedRobotId] = neighboursPos[receivedRobotId];
 
     neighboursPos[receivedRobotId] = { std::cos(theta) * distance,
                                        -std::sin(theta) * distance };
-
-    neighboursRelativeSpeed[receivedRobotId] = (neighboursPos[receivedRobotId] - neighboursPrevPos[receivedRobotId])/DELTA_T;
 
     //cout << "-----------------------------------" << endl;
     //cout << "Robot " << receivedFlockId << " from flock " << receivedRobotId << " : " << endl;
@@ -302,8 +296,6 @@ void reset_run()
     for(int i = 0 ; i < FLOCK_SIZE ; ++i)
     {
       neighboursPos[i] = Vec2(0.0,0.0);
-      neighboursPrevPos[i] = Vec2(0.0,0.0);
-      neighboursRelativeSpeed[i] = Vec2(0.0,0.0);
     }
 }
 
