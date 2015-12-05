@@ -35,7 +35,7 @@ double constexpr PHI_P = 0.15; // impact of the personal best
 double constexpr PHI_G = 0.25; // impact of the global best
 // NOTE: PHI_P and PHI_G are scaled with x ~ U(0, 1).
 
-std::string const& SAVE_FILE = "results.txt";
+std::string const& SAVE_FILE = "results2.txt";
 
 using Positions = std::array<Position, SWARM_SIZE>;
 using Speeds    = std::array<Speed,    SWARM_SIZE>;
