@@ -30,8 +30,8 @@ using Evalutor  = std::function<Fitness(Position const&)>;
 
 std::size_t constexpr SWARM_SIZE = 5;
 std::size_t constexpr MAX_ITERATIONS = 10000;
-double constexpr OMEGA = 1.0;  // impact of the particle's speed (inertia)
-double constexpr PHI_P = 0.20; // impact of the personal best
+double constexpr OMEGA = 0.7;  // impact of the particle's speed (inertia)
+double constexpr PHI_P = 0.15; // impact of the personal best
 double constexpr PHI_G = 0.25; // impact of the global best
 // NOTE: PHI_P and PHI_G are scaled with x ~ U(0, 1).
 
@@ -47,14 +47,14 @@ using PwFs      = std::array<PositionWithFitness, SWARM_SIZE>;
 Position createRandomPosition()
 {
     return {
-        uniform(0.0, 1.0), // avoidance weights[0]
-        uniform(0.0, 1.0), // avoidance weights[1]
-        uniform(0.0, 1.0), // avoidance weights[2]
-        uniform(0.0, 1.0), // avoidance weights[3]
-        uniform(0.0, 1.0), // avoidance weights[4]
-        uniform(0.0, 1.0), // avoidance weights[5]
-        uniform(0.0, 1.0), // avoidance weights[6]
-        uniform(0.0, 1.0), // avoidance weights[7]
+        uniform(0.8, 1.2), // avoidance weights[0]
+        uniform(0.8, 1.2), // avoidance weights[1]
+        uniform(0.8, 1.2), // avoidance weights[2]
+        uniform(0.8, 1.2), // avoidance weights[3]
+        uniform(0.8, 1.2), // avoidance weights[4]
+        uniform(0.8, 1.2), // avoidance weights[5]
+        uniform(0.8, 1.2), // avoidance weights[6]
+        uniform(0.8, 1.2), // avoidance weights[7]
         uniform(0.0, 1.0), // cohesion weight
         uniform(0.0, 1.0), // alignment weight
         uniform(0.0, 1.0), // migration weight

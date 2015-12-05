@@ -199,6 +199,7 @@ void pong()
     double dirZ = dir[2];
 
     double theta = -std::atan2(dirZ, dirX);
+    theta += myTheta;
 
     double distance = std::sqrt(1.0 / signalStrength);
 
@@ -363,7 +364,7 @@ void simulate(PSOParams const& params)
         // 4) Use fixed target
         double x = migrationVec.x * std::cos(myTheta) - migrationVec.y * std::sin(myTheta);
         double y = migrationVec.x * std::sin(myTheta) + migrationVec.y * std::cos(myTheta);
-        auto const migration = Vec2(x, y);
+        auto const migration = Vec2(x, y) / norm(migrationVec);
 
         // Combine those tree rules
         auto const direction = avoidance + // avoidance was already weighted
