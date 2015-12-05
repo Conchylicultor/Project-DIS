@@ -317,12 +317,11 @@ void simulate(PSOParams const& params)
 #endif
 
     int wheelSpeed[2] = { 0, 0 }; // Left and right wheel speed
-    Vec2 prevCenterOfMass = { 0, 0 };
+    Vec2 prevCenterOfMass = myPosition;
+    Vec2 centerOfMass = myPosition;
 
     for (std::size_t i = 0; i < PSOParams::SIMULATION_STEPS; ++i)
     {
-        myPrevPosition = myPosition;
-
         // Emission/reception between flock members
         ping(); // Indicate our presence
         pong(); // Get informations from other robots
@@ -332,35 +331,41 @@ void simulate(PSOParams const& params)
         // 2) alignment: steer towards the average heading of local flockmates
         // 3) cohesion: steer to move toward the average position (center of mass) of local
         //    flockmates
+        // 4) migration urge: steer towards the flock's target
 
         // 1) Use IR sensors to detect obstacles and avoid them
         // TODO
 
         // 3) Use relative positioning information to compute center of mass
-        auto const centerOfMass = computeCenterOfMass();
+        centerOfMass = computeCenterOfMass();
         auto const cohesion = centerOfMass;
 
         // 2) Use relative positioning information to compute the migration direction
         auto const aligmnent = prevCenterOfMass - centerOfMass;
 
+        // 4) Use fixed target
+        double x = migrationVec.x * std::cos(myTheta) - migrationVec.y * std::sin(myTheta);
+        double y = migrationVec.x * std::sin(myTheta) + migrationVec.y * std::cos(myTheta);
+        auto const migration = Vec2(x, y);
+
         // Combine those tree rules
         // TODO
         auto const direction =
             params.alignmentWeight * aligmnent +
-            params.cohesionWeight * cohesion;
+            params.cohesionWeight * cohesion +
+            params.migrationWeight * migration;
 
         // Convert that into wheel speed
-        // Update position
-        updateCurrentPosition(wheelSpeed);
-
         computeWheelSpeeds(wheelSpeed, direction, myTheta);
-
-        // Set speed
         wb_differential_wheels_set_speed(wheelSpeed[0], wheelSpeed[1]);
 
         // Continue one step
         wb_robot_step(TIME_STEP);
-        prevCenterOfMass = centerOfMass;
+
+        myPrevPosition = myPosition;
+        updateCurrentPosition(wheelSpeed);
+
+        prevCenterOfMass -= myPosition - myPrevPosition;
     }
 }
 
