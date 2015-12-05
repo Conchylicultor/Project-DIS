@@ -28,7 +28,7 @@ using PositionWithFitness = std::pair<Position, Fitness>;
 
 using Evalutor  = std::function<Fitness(Position const&)>;
 
-std::size_t constexpr SWARM_SIZE = 15;
+std::size_t constexpr SWARM_SIZE = 5;
 std::size_t constexpr MAX_ITERATIONS = 10000;
 double constexpr OMEGA = 1.0;  // impact of the particle's speed (inertia)
 double constexpr PHI_P = 0.20; // impact of the personal best
@@ -47,13 +47,12 @@ using PwFs      = std::array<PositionWithFitness, SWARM_SIZE>;
 Position createRandomPosition()
 {
     return {
-        uniform(0.0, 1.0), // cohesion threshold
         uniform(0.0, 1.0), // cohesion weight
-        uniform(0.0, 1.0), // separation threshold
         uniform(0.0, 1.0), // separation weight
         uniform(0.0, 1.0), // alignment weight
         uniform(0.0, 1.0), // migration weight
     };
+    static_assert(NB_PARAMS == 4, "wrong size");
 }
 
 
@@ -63,13 +62,12 @@ Position createRandomPosition()
 Speed createRandomSpeed()
 {
     return {
-        uniform(-0.1, 0.1), // cohesion threshold
         uniform(-0.1, 0.1), // cohesion weight
-        uniform(-0.1, 0.1), // separation threshold
         uniform(-0.1, 0.1), // separation weight
         uniform(-0.1, 0.1), // alignment weight
         uniform(-0.1, 0.1), // migration weight
     };
+    static_assert(NB_PARAMS == 4, "wrong size");
 }
 
 
@@ -79,13 +77,12 @@ Speed createRandomSpeed()
 Modulator createRandomModulators()
 {
     return {
-        uniform(0.0, 1.0), // cohesion threshold
         uniform(0.0, 1.0), // cohesion weight
-        uniform(0.0, 1.0), // separation threshold
         uniform(0.0, 1.0), // separation weight
         uniform(0.0, 1.0), // alignment weight
         uniform(0.0, 1.0), // migration weight
     };
+    static_assert(NB_PARAMS == 4, "wrong size");
 }
 
 
@@ -94,7 +91,7 @@ Modulator createRandomModulators()
  */
 PSOParams toParams(Position const& p)
 {
-    return { p[0], p[1], p[2], p[3], p[4], p[5] };
+    return { p[0], p[1], p[2], p[3] };
 }
 
 
@@ -263,32 +260,32 @@ void loadState(std::string const& filename, std::size_t& t, Positions& positions
 
     for (std::size_t i = 0; i < size; ++i)
     {
-        positions[i].resize(6); // number of dimensions
+        positions[i].resize(NB_PARAMS); // number of dimensions
         in >> trash >> positions[i];
     }
     ensureValid("positions");
 
     for (std::size_t i = 0; i < size; ++i)
     {
-        speeds[i].resize(6);
+        speeds[i].resize(NB_PARAMS);
         in >> trash >> speeds[i];
     }
     ensureValid("speeds");
 
     for (std::size_t i = 0; i < size; ++i)
     {
-        personalBests[i].first.resize(6);
+        personalBests[i].first.resize(NB_PARAMS);
         in >> trash >> personalBests[i].second
            >> trash >> personalBests[i].first;
     }
     ensureValid("personal bests");
 
-    globalBest.first.resize(6);
+    globalBest.first.resize(NB_PARAMS);
     in >> trash >> globalBest.second
        >> trash >> globalBest.first;
     ensureValid("global best");
 
-    absoluteBest.first.resize(6);
+    absoluteBest.first.resize(NB_PARAMS);
     in >> trash >> absoluteBest.second
        >> trash >> absoluteBest.first;
     ensureValid("absolute best");

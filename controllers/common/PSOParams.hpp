@@ -10,17 +10,9 @@
 struct PSOParams
 {
     // Cohesion
-
-    // Threshold to activate cohesion rule. This represents the minimal distance that
-    // triggers attraction toward the centre of mass of the flock.
-    double cohesionThreshold;
     double cohesionWeight;
 
     // Separation
-
-    // Threshold to activate dispersion rule. This represents the minimal allowed distance between
-    // two boids before they try to avoid each other.
-    double separationThreshold;
     double spearationWeight;
 
     // Alignment
@@ -37,9 +29,7 @@ struct PSOParams
 inline std::ostream& operator<<(std::ostream& out, PSOParams const& params)
 {
     return out << "[\n"
-               << "\tcohesion threshold   = " << params.cohesionThreshold   << "\n"
                << "\tcohesion weight      = " << params.cohesionWeight      << "\n"
-               << "\tseparation threshold = " << params.separationThreshold << "\n"
                << "\tseparation weight    = " << params.spearationWeight    << "\n"
                << "\talignment weight     = " << params.alignmentWeight     << "\n"
                << "\tmigration weight     = " << params.migrationWeight     << "\n"
@@ -48,15 +38,13 @@ inline std::ostream& operator<<(std::ostream& out, PSOParams const& params)
 
 
 
-static const unsigned int NB_PARAMS = 6;
+static const unsigned int NB_PARAMS = 4;
 
 // Normalize using x = (x-min) / (max-min)
-static double minMaxParams[NB_PARAMS][2] = {{0.0, 1.0}, // cohesionThreshold
-                                            {0.0, 1.0}, // cohesionWeight
-                                            {0.0, 1.0}, // separationThreshold
-                                            {0.0, 1.0}, // spearationWeight
-                                            {0.0, 1.0}, // alignmentWeight
-                                            {0.0, 1.0}}; //migrationWeigth
+static double minMaxParams[NB_PARAMS][2] = { { 0.0, 1.0 },   // cohesionWeight
+                                             { 0.0, 1.0 },   // spearationWeight
+                                             { 0.0, 1.0 },   // alignmentWeight
+                                             { 0.0, 1.0 } }; // migrationWeigth
 
 /*
  * Normalize the robots params to [0-1] before applying PSO
