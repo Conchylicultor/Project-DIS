@@ -33,8 +33,6 @@ int robotIdGlobal = 0; // World id
 int flockId = 0; // Id of the flock
 int robotId = 0; // Id in the flock
 
-static const int NB_SENSORS = 8; // Number of distance sensors
-
 WbDeviceTag ds[NB_SENSORS];     // Handle for the infrared distance sensors
 WbDeviceTag receiver;           // Handle for the receiver node
 WbDeviceTag emitter;            // Handle for the emitter node
@@ -52,6 +50,28 @@ double myTheta = 0.0; // TODO we could use a compass instead
 Vec2 neighboursPos[FLOCK_SIZE]; // Relative positions of the neighbours
 
 const Vec2 migrationVec(0.0,-20.0); // TODO: Change our migration vector ?
+
+double const sensorAngles[NB_SENSORS] = {
+    /* ps0 */ 5.9823,
+    /* ps1 */ 5.4823,
+    /* ps2 */ 4.7123,
+    /* ps3 */ 3.6392,
+    /* ps4 */ 2.6392,
+    /* ps5 */ 1.5707,
+    /* ps6 */ 0.7992,
+    /* ps7 */ 0.2992
+};
+
+Vec2 const sensorDirections[NB_SENSORS] = {
+    { std::cos(sensorAngles[0]), -std::sin(sensorAngles[0]) },
+    { std::cos(sensorAngles[1]), -std::sin(sensorAngles[1]) },
+    { std::cos(sensorAngles[2]), -std::sin(sensorAngles[2]) },
+    { std::cos(sensorAngles[3]), -std::sin(sensorAngles[3]) },
+    { std::cos(sensorAngles[4]), -std::sin(sensorAngles[4]) },
+    { std::cos(sensorAngles[5]), -std::sin(sensorAngles[5]) },
+    { std::cos(sensorAngles[6]), -std::sin(sensorAngles[6]) },
+    { std::cos(sensorAngles[7]), -std::sin(sensorAngles[7]) },
+};
 
 
 // -------------------
@@ -326,7 +346,12 @@ void simulate(PSOParams const& params)
         // 4) migration urge: steer towards the flock's target
 
         // 1) Use IR sensors to detect obstacles and avoid them
-        // TODO
+        auto avoidance = Vec2();
+        for (std::size_t i = 0; i < NB_SENSORS; ++i)
+        {
+            auto const distance = wb_distance_sensor_get_value(ds[i]);
+            avoidance -= std::pow(distance, -params.avoidanceWeights[i]) * sensorDirections[i];
+        }
 
         // 3) Use relative positioning information to compute center of mass
         centerOfMass = computeCenterOfMass();
@@ -341,11 +366,10 @@ void simulate(PSOParams const& params)
         auto const migration = Vec2(x, y);
 
         // Combine those tree rules
-        // TODO
-        auto const direction =
-            params.alignmentWeight * aligmnent +
-            params.cohesionWeight * cohesion +
-            params.migrationWeight * migration;
+        auto const direction = avoidance + // avoidance was already weighted
+                               params.alignmentWeight * aligmnent +
+                               params.cohesionWeight * cohesion +
+                               params.migrationWeight * migration;
 
         // Convert that into wheel speed
         computeWheelSpeeds(wheelSpeed, direction, myTheta);

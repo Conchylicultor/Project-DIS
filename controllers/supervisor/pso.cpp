@@ -47,12 +47,19 @@ using PwFs      = std::array<PositionWithFitness, SWARM_SIZE>;
 Position createRandomPosition()
 {
     return {
+        uniform(0.0, 1.0), // avoidance weights[0]
+        uniform(0.0, 1.0), // avoidance weights[1]
+        uniform(0.0, 1.0), // avoidance weights[2]
+        uniform(0.0, 1.0), // avoidance weights[3]
+        uniform(0.0, 1.0), // avoidance weights[4]
+        uniform(0.0, 1.0), // avoidance weights[5]
+        uniform(0.0, 1.0), // avoidance weights[6]
+        uniform(0.0, 1.0), // avoidance weights[7]
         uniform(0.0, 1.0), // cohesion weight
-        uniform(0.0, 1.0), // separation weight
         uniform(0.0, 1.0), // alignment weight
         uniform(0.0, 1.0), // migration weight
     };
-    static_assert(NB_PARAMS == 4, "wrong size");
+    static_assert(NB_PARAMS == 11, "wrong size");
 }
 
 
@@ -62,12 +69,19 @@ Position createRandomPosition()
 Speed createRandomSpeed()
 {
     return {
+        uniform(-0.1, 0.1), // avoidance weights[0]
+        uniform(-0.1, 0.1), // avoidance weights[1]
+        uniform(-0.1, 0.1), // avoidance weights[2]
+        uniform(-0.1, 0.1), // avoidance weights[3]
+        uniform(-0.1, 0.1), // avoidance weights[4]
+        uniform(-0.1, 0.1), // avoidance weights[5]
+        uniform(-0.1, 0.1), // avoidance weights[6]
+        uniform(-0.1, 0.1), // avoidance weights[7]
         uniform(-0.1, 0.1), // cohesion weight
-        uniform(-0.1, 0.1), // separation weight
         uniform(-0.1, 0.1), // alignment weight
         uniform(-0.1, 0.1), // migration weight
     };
-    static_assert(NB_PARAMS == 4, "wrong size");
+    static_assert(NB_PARAMS == 11, "wrong size");
 }
 
 
@@ -77,12 +91,19 @@ Speed createRandomSpeed()
 Modulator createRandomModulators()
 {
     return {
+        uniform(0.0, 1.0), // avoidance weights[0]
+        uniform(0.0, 1.0), // avoidance weights[1]
+        uniform(0.0, 1.0), // avoidance weights[2]
+        uniform(0.0, 1.0), // avoidance weights[3]
+        uniform(0.0, 1.0), // avoidance weights[4]
+        uniform(0.0, 1.0), // avoidance weights[5]
+        uniform(0.0, 1.0), // avoidance weights[6]
+        uniform(0.0, 1.0), // avoidance weights[7]
         uniform(0.0, 1.0), // cohesion weight
-        uniform(0.0, 1.0), // separation weight
         uniform(0.0, 1.0), // alignment weight
         uniform(0.0, 1.0), // migration weight
     };
-    static_assert(NB_PARAMS == 4, "wrong size");
+    static_assert(NB_PARAMS == 11, "wrong size");
 }
 
 
@@ -91,9 +112,8 @@ Modulator createRandomModulators()
  */
 PSOParams toParams(Position const& p)
 {
-    return { p[0], p[1], p[2], p[3] };
+    return { { p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7] }, p[8], p[9], p[10] };
 }
-
 
 /*
  * Select the best particle
@@ -341,7 +361,9 @@ int main(int, char const** argv) try
         saveState(basepath + SAVE_FILE, t, positions, speeds, personalBests, globalBest, absoluteBest);
     }
 
-    std::cout << "Initial absolute best fitness: " << absoluteBest.second << std::endl;
+    std::cout << "Initial absolute best fitness: " << absoluteBest.second << "\n"
+              << "Initial absolute best settings: " << toParams(absoluteBest.first) << std::endl;
+
 
     // Run PSO optimisation for a fixed number of iterations
     for (; t < MAX_ITERATIONS; ++t)
@@ -387,8 +409,9 @@ int main(int, char const** argv) try
         std::cout << "\n\n" << std::string(80, '*') << "\n"
                   << "\tEnd of iteration " << t
                   << " with absolute best fitness of " << absoluteBest.second
-                  << " and best settings: " << toParams(absoluteBest.first) << "\n"
-                  << " global best has fitness of " << globalBest.second << "\n"
+                  << " and absolute best settings: " << toParams(absoluteBest.first) << "\n"
+                  << " global best has fitness of " << globalBest.second
+                  << " and global best settings: " << toParams(globalBest.first) << "\n"
                   << std::string(80, '*') << "\n\n"
                   << std::endl;
 

@@ -4,21 +4,16 @@
 #include <cstddef>
 #include <ostream>
 
+static const int NB_SENSORS = 8; // Number of distance sensors
+
 /*
  * Parameters to optimise
  */
 struct PSOParams
 {
-    // Cohesion
+    double avoidanceWeights[NB_SENSORS];
     double cohesionWeight;
-
-    // Separation
-    double spearationWeight;
-
-    // Alignment
     double alignmentWeight;
-
-    // Migration
     double migrationWeight;
 
     // Common to all parameters: the duration of the simulation during which the fitness is evaluated
@@ -28,21 +23,32 @@ struct PSOParams
 
 inline std::ostream& operator<<(std::ostream& out, PSOParams const& params)
 {
-    return out << "[\n"
-               << "\tcohesion weight      = " << params.cohesionWeight      << "\n"
-               << "\tseparation weight    = " << params.spearationWeight    << "\n"
-               << "\talignment weight     = " << params.alignmentWeight     << "\n"
-               << "\tmigration weight     = " << params.migrationWeight     << "\n"
-               << "]";
+    out << "[\n"
+        << "\tavoidance weights    = [ ";
+    for (auto w : params.avoidanceWeights)
+        out << w << " ";
+    out << "]\n"
+        << "\tcohesion weight      = " << params.cohesionWeight << "\n"
+        << "\talignment weight     = " << params.alignmentWeight << "\n"
+        << "\tmigration weight     = " << params.migrationWeight << "\n"
+        << "]";
+    return out;
 }
 
 
 
-static const unsigned int NB_PARAMS = 4;
+static const unsigned int NB_PARAMS = 3 + NB_SENSORS;
 
 // Normalize using x = (x-min) / (max-min)
-static double minMaxParams[NB_PARAMS][2] = { { 0.0, 1.0 },   // cohesionWeight
-                                             { 0.0, 1.0 },   // spearationWeight
+static double minMaxParams[NB_PARAMS][2] = { { 0.0, 1.0 },   // avoidanceWeights[0]
+                                             { 0.0, 1.0 },   // avoidanceWeights[1]
+                                             { 0.0, 1.0 },   // avoidanceWeights[2]
+                                             { 0.0, 1.0 },   // avoidanceWeights[3]
+                                             { 0.0, 1.0 },   // avoidanceWeights[4]
+                                             { 0.0, 1.0 },   // avoidanceWeights[5]
+                                             { 0.0, 1.0 },   // avoidanceWeights[6]
+                                             { 0.0, 1.0 },   // avoidanceWeights[7]
+                                             { 0.0, 1.0 },   // cohesionWeight
                                              { 0.0, 1.0 },   // alignmentWeight
                                              { 0.0, 1.0 } }; // migrationWeigth
 
