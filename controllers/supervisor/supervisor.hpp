@@ -22,25 +22,6 @@ struct RobotConfig
 using RobotConfigs = std::array<RobotConfig, FLOCK_SIZE>;
 
 
-/*
- * Initialize flock position and devices.
- */
-void reset();
-
-/*
- * Read the configuration for all robots
- *
- * The configuration of the i-th robot is stored at the i-th index of the returned array
- */
-RobotConfigs readAllRobotsConfig();
-
-
-/*
- * Compute the fitness for the current PSO parameters
- */
-double simulate(RobotConfigs const& initialConfigs, PSOParams const& params);
-
-
 #endif
 
 

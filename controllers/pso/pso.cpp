@@ -1,16 +1,19 @@
 
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <fstream>
 #include <functional>
 #include <iostream>
 #include <limits>
 #include <stdexcept>
 #include <string>
+#include <thread>
 #include <utility>
 #include <valarray>
 
-#include "supervisor.hpp"
+#include "../common/Config.hpp"
+#include "../common/PSOParams.hpp"
 #include "../common/Uniform.hpp"
 
 
@@ -28,9 +31,9 @@ using PositionWithFitness = std::pair<Position, Fitness>;
 
 using Evalutor  = std::function<Fitness(Position const&)>;
 
-std::size_t constexpr SWARM_SIZE = 5;
+std::size_t constexpr SWARM_SIZE = 5 ; // PLEASE KEEP THIS EXTRA SPACE!!!
 std::size_t constexpr MAX_ITERATIONS = 10000;
-double constexpr OMEGA = 0.7;  // impact of the particle's speed (inertia)
+double constexpr OMEGA = 0.9;  // impact of the particle's speed (inertia)
 double constexpr PHI_P = 0.15; // impact of the personal best
 double constexpr PHI_G = 0.25; // impact of the global best
 // NOTE: PHI_P and PHI_G are scaled with x ~ U(0, 1).
@@ -40,6 +43,8 @@ std::string const& SAVE_FILE = "results2.txt";
 using Positions = std::array<Position, SWARM_SIZE>;
 using Speeds    = std::array<Speed,    SWARM_SIZE>;
 using PwFs      = std::array<PositionWithFitness, SWARM_SIZE>;
+
+using PIDs = std::array<int, SWARM_SIZE>; // to keep track of supervisors' PID
 
 /*
  * Create some random PSO parameters
@@ -125,21 +130,75 @@ PositionWithFitness selectBest(PositionWithFitness const& p, PositionWithFitness
 
 
 /*
+ * Write PSOParams into a file for supervisor to read
+ */
+void startSimulation(std::string const& basepath, int pid, Position const& p)
+{
+    auto filename = basepath + "psoparams." + std::to_string(pid) + ".txt";
+    std::ofstream out(filename);
+    out << toParams(p);
+    if (!out)
+        throw std::runtime_error("Couldn't save parameters to file " + filename);
+    else
+        std::cout << "Parameters saved in " << filename << std::endl;
+}
+
+
+/*
+ * Read fitness from file
+ */
+double readResult(std::string const& basepath, int pid)
+{
+    auto filename = basepath + "psofitness." + std::to_string(pid) + ".txt";;
+    double fitness;
+
+    std::size_t constexpr MAX_ATTEMPTS = 5;
+    for (std::size_t i = 0; i < MAX_ATTEMPTS;)
+    {
+        std::ifstream in(filename);
+        if (in)
+        {
+            if (in >> fitness)
+            {
+                // Success!
+                std::remove(filename.c_str());
+                std::cout << "Fitness read from file " << filename << std::endl;
+                return fitness;
+            }
+            else
+            {
+                // only consider bad file formating as error
+                ++i;
+            }
+        }
+
+        // Wait for file to be available
+        std::this_thread::sleep_for(std::chrono::seconds(5));
+    }
+
+    // Too many errors...
+    throw std::runtime_error("Couldn't read PSOParams from " + filename);
+}
+
+/*
  * Perform random initialisation of the particles
  */
-void initilisePSO(Evalutor const& computeFitness, Positions& positions, Speeds& speeds,
-                  PwFs& personalBests, PositionWithFitness& globalBest,
+void initilisePSO(std::string const& basepath, PIDs const& pids, Positions& positions,
+                  Speeds& speeds, PwFs& personalBests, PositionWithFitness& globalBest,
                   PositionWithFitness& absoluteBest)
 {
     // Generate random particles (position and speed)
     std::generate(std::begin(positions), std::end(positions), createRandomPosition);
-    std::generate(std::begin(speeds),    std::end(speeds),    createRandomSpeed);
+    std::generate(std::begin(speeds), std::end(speeds), createRandomSpeed);
 
-    // Update initial beliefs
+    // Update initial beliefs: start simulations
+    for (std::size_t i = 0; i < positions.size(); ++i)
+        startSimulation(basepath, pids[i], positions[i]);
+
     globalBest.second = std::numeric_limits<Fitness>::lowest(); // cannot be worst than that
     for (std::size_t i = 0; i < positions.size(); ++i)
     {
-        auto fitness = computeFitness(positions[i]);
+        auto fitness = readResult(basepath, pids[i]);
         std::cout << i << "-th particle: initial fitness = " << fitness << std::endl;
 
         // initialise personal best to the only known particle
@@ -150,7 +209,6 @@ void initilisePSO(Evalutor const& computeFitness, Positions& positions, Speeds& 
 
     absoluteBest = globalBest;
 }
-
 
 template <typename T>
 std::ostream& operator<<(std::ostream& out, std::valarray<T> const& v)
@@ -309,14 +367,20 @@ void loadState(std::string const& filename, std::size_t& t, Positions& positions
     in >> trash >> absoluteBest.second
        >> trash >> absoluteBest.first;
     ensureValid("absolute best");
-
 }
 
 
 /*
- * Main function.
+ * This PSO solver works as follow:
+ *  - PSO state can be saved and loaded from SAVE_FILE
+ *  - Each particle of the swarm can be simulated in parallel
+ *    assuming there are SWARM_SIZE running instance of Webots and
+ *    that the PIDs of the supervisors are given to this program
+ *    as parameters
+ *  - Each supervisor should read PSOParams from psoparams.$pid.txt
+ *    and save the fitness result in psofitness.$pid.txt
  */
-int main(int, char const** argv) try
+int main(int argc, char const** argv) try
 {
     std::string basepath = argv[0];
     auto lastSlashPos = basepath.rfind('/');
@@ -328,17 +392,12 @@ int main(int, char const** argv) try
 
     std::cout << "Basepath is " << basepath << std::endl;
 
-    reset();
-
-    // Read the initial configuration for all robots in order to restore
-    // it when measuring the fitness of some PSO settings
-    RobotConfigs const initialConfigs = readAllRobotsConfig();
-
-    // Shorthand to compute fitness
-    auto computeFitness = [&initialConfigs](Position const& p) {
-        // compute performance using Webots
-        return simulate(initialConfigs, toParams(p));
-    };
+    // Get PIDs of supervisors
+    if (argc != SWARM_SIZE + 1)
+        throw std::runtime_error("wrong arguments: expected PIDs");
+    PIDs pids;
+    for (int i = 1; i < argc; ++i)
+        pids[i-1] = std::stoi(argv[i]);
 
     // PSO states:
     Positions positions;               // particles' position
@@ -357,7 +416,7 @@ int main(int, char const** argv) try
     {
         std::cout << "Randomly initialising PSO state" << std::endl;
 
-        initilisePSO(computeFitness, positions, speeds, personalBests, globalBest, absoluteBest);
+        initilisePSO(basepath, pids, positions, speeds, personalBests, globalBest, absoluteBest);
         saveState(basepath + SAVE_FILE, t, positions, speeds, personalBests, globalBest, absoluteBest);
     }
 
@@ -373,6 +432,10 @@ int main(int, char const** argv) try
         PositionWithFitness nextGlobalBest;
         nextGlobalBest.second = std::numeric_limits<Fitness>::lowest();
 
+        // At each iteration we launch the different independent simulation
+        // and then gather the results.
+
+        // Compute new position + start simulations:
         for (std::size_t i = 0; i < positions.size(); ++i)
         {
             // Update i-th particle's speed and position
@@ -384,7 +447,13 @@ int main(int, char const** argv) try
             positions[i] += speeds[i]; // assuming dt = 1 unit of time
 
             // Evaluate performance
-            auto fitness = computeFitness(positions[i]);
+            startSimulation(basepath, pids[i], positions[i]);
+        }
+
+        // Gather results + update knowledge:
+        for (std::size_t i = 0; i < positions.size(); ++i)
+        {
+            auto fitness = readResult(basepath, pids[i]);
 
             // Update our knowledge of the search space
             auto candidate = PositionWithFitness{ positions[i], fitness };

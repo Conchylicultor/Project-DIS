@@ -2,7 +2,8 @@
 #define PSOPARAMS_HPP
 
 #include <cstddef>
-#include <ostream>
+#include <iostream>
+#include <sstream>
 
 static const int NB_SENSORS = 8; // Number of distance sensors
 
@@ -36,6 +37,44 @@ inline std::ostream& operator<<(std::ostream& out, PSOParams const& params)
 }
 
 
+inline std::istream& operator>>(std::istream& in, PSOParams& params)
+{
+    // Ignore first line (`[`)
+    std::string line;
+    std::getline(in, line);
+
+    // Avoidance:
+    std::getline(in, line);
+    auto idx1 = line.find('[') + 1;
+    auto idx2 = line.find(']');
+    line = line.substr(idx1, idx2 - idx1 - 1);
+    std::istringstream ss(line);
+    for (auto& w : params.avoidanceWeights)
+        ss >> w;
+
+    // Cohesion:
+    std::getline(in, line);
+    idx1 = line.find('=');
+    line = line.substr(idx1 + 1);
+    params.cohesionWeight = std::stod(line);
+
+    // Alignment:
+    std::getline(in, line);
+    idx1 = line.find('=');
+    line = line.substr(idx1 + 1);
+    params.alignmentWeight = std::stod(line);
+
+    // Migration:
+    std::getline(in, line);
+    idx1 = line.find('=');
+    line = line.substr(idx1 + 1);
+    params.migrationWeight = std::stod(line);
+
+    // Ignore last line (`]`)
+    std::getline(in, line);
+
+    return in;
+}
 
 static const unsigned int NB_PARAMS = 3 + NB_SENSORS;
 

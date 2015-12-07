@@ -44,7 +44,7 @@
 ###
 ###-----------------------------------------------------------------------------
 CFLAGS = -std=c++11 -O3 -DWEBOTS -I$(WEBOTS_HOME)/include/controller/c # -DQUIET
-CXX_SOURCES = supervisor.cpp pso.cpp
+CXX_SOURCES = supervisor.cpp
 
 ### Do not modify: this includes Webots global Makefile.include
 space :=

@@ -1,13 +1,19 @@
 #include <array>
 #include <algorithm>
+#include <chrono>
+#include <cmath>
+#include <complex>
+#include <cstdio>
+#include <fstream>
 #include <iostream>
 #include <string>
-#include <complex>
-#include <cmath>
+#include <thread>
 
 #include <webots/robot.h>
 #include <webots/emitter.h>
 #include <webots/supervisor.h>
+
+#include <unistd.h>
 
 #include "supervisor.hpp"
 #include "../common/Config.hpp"
@@ -365,6 +371,96 @@ double simulate(RobotConfigs const& initialConfigs, PSOParams const& params)
   }
 
   return fitnessGlobal;
+}
+
+
+/*
+ * Read PSO parameters from file
+ */
+PSOParams readPSOParams(std::string const& filename)
+{
+    PSOParams params;
+
+    std::size_t constexpr MAX_ATTEMPTS = 5;
+    for (std::size_t i = 0; i < MAX_ATTEMPTS;)
+    {
+        std::ifstream in(filename);
+        if (in)
+        {
+            if (in >> params)
+            {
+                // Success!
+                std::remove(filename.c_str());
+                return params;
+            }
+            else
+            {
+                // only consider bad file formating as error
+                ++i;
+            }
+        }
+
+        // Wait for file to be available
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+
+    // Too many errors...
+    throw std::runtime_error("Couldn't read PSOParams from " + filename);
+}
+
+/*
+ * Same fitness to file
+ */
+void writeResult(double fitness, std::string const& filename)
+{
+    std::ofstream out(filename);
+    out << fitness << std::endl;
+    if (!out)
+        throw std::runtime_error("Couldn't save result to " + filename);
+}
+
+
+int main(int, char** argv)
+{
+    std::string basepath = argv[0];
+    auto lastSlashPos = basepath.rfind('/');
+    if (lastSlashPos == std::string::npos) {
+        basepath = "./";
+    } else {
+        basepath = basepath.substr(0, lastSlashPos + 1);
+    }
+    auto psopath = basepath + "../pso/";
+
+    std::cout << "Basepath is " << basepath << std::endl;
+
+    reset();
+
+    // Read the initial configuration for all robots in order to restore
+    // it when measuring the fitness of some PSO settings
+    RobotConfigs const initialConfigs = readAllRobotsConfig();
+
+    auto pid = getpid();
+    std::cout << "PID: " << pid << std::endl;
+
+    auto input = psopath + "psoparams." + std::to_string(pid) + ".txt";
+    auto output = psopath + "psofitness." + std::to_string(pid) + ".txt";
+
+    while (true)
+    {
+        /*
+         * The supervisor works as follow:
+         *  - It reads PSOParams from a file (psoparams.$pid.txt) and delete this file,
+         *  - then it simulates those parameters for a while,
+         *  - and write the fitness value in a file (psofitness.$pid.txt).
+         *
+         * The data provided in psoparams.$pid.txt is written by the PSO program.
+         */
+        auto params = readPSOParams(input);
+        auto fitness = simulate(initialConfigs, params);
+        writeResult(fitness, output);
+    }
+
+    return EXIT_FAILURE;
 }
 
 
