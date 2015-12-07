@@ -343,16 +343,26 @@ double simulate(RobotConfigs const& initialConfigs, PSOParams const& params)
               }
           }
 
-          double fitnessInstant = computeFitnessStep(flockId);
-
-          // Update fitness
-          if (nbTimestep > 0)
+          if (nbTimestep > 0) // no speed at time 0
           {
-              // Plot every x timesteps
+              double fitnessInstant = computeFitnessStep(flockId);
+
+              // Update fitness
+              if (nbTimestep > 0)
+              {
+                  // Plot every x timesteps
+                  PRINT_INFO
+                  {
+                      coutSuper << "Performances of flock " << flockId << ":" << endl;
+                      coutSuper << fitnessInstant << " (instant)" << endl;
+                  }
+              }
+
+              fitnessGlobal += fitnessInstant;
               PRINT_INFO
               {
-                  coutSuper << "Performances of flock " << flockId << ":" << endl;
-                  coutSuper << fitnessInstant << " (instant)" << endl;
+                  coutSuper << "Performances overall:" << endl;
+                  coutSuper << fitnessGlobal / nbTimestep / NUMBER_OF_FLOCKS << endl;
               }
           }
 
@@ -360,13 +370,6 @@ double simulate(RobotConfigs const& initialConfigs, PSOParams const& params)
           for (int j = 0; j < 3; ++j) // 3 is the number of dimension
           {
               flock.prevCenterOfMass[j] = flock.centerOfMass[j];
-          }
-
-          fitnessGlobal += fitnessInstant;
-          PRINT_INFO
-          {
-              coutSuper << "Performances overall:" << endl;
-              coutSuper << fitnessGlobal / nbTimestep / NUMBER_OF_FLOCKS << endl;
           }
       }
 
