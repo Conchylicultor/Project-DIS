@@ -1,4 +1,4 @@
-#VRML_SIM V8.3.0 utf8
+#VRML_SIM V8.3.1 utf8
 WorldInfo {
   info [
     "Description"
@@ -224,19 +224,10 @@ DEF long_rock_11 Solid {
 Supervisor {
   children [
     DEF emitter Emitter {
-      channel 1
-    }
-  ]
-  name "super1"
-  controller "supervisor"
-}
-Supervisor {
-  children [
-    DEF emitter Emitter {
       channel 2
     }
   ]
-  name "super2"
+  name "super"
   controller "supervisor"
 }
 DEF epuck0 DifferentialWheels {
