@@ -57,6 +57,11 @@ const Vec2 migrationVec(0.0,-20.0); // TODO: Change our migration vector ?
 // Obstacle avoidance functions
 // -------------------
 
+
+// Parametters for the weighted speed behavior (reynolds or braitenberg ?)
+const double thresholdSpeedReynolds = 120.0; // Bellow this value, we reduce reynolds to go in obstacle avoidance mode
+const double sigmaSpeedReynolds = 30.0; // Transition parametter
+
 // Braitenberg parameters
 const int MIN_SENS = 350; // Minimum sensibility value
 const int MAX_SENS = 4096; // Maximum sensibility value
@@ -69,7 +74,7 @@ const int weightMatrix[2][NB_SENSORS] = {{-72,-58,-36,8,10,36,28,18},
 /*
  * Try avoiding obstacles
  */
-void braitenbergObstacle(int wheelSpeed[2], bool &thresholdSpeedInstinct, int &maxSensorValue)
+void braitenbergObstacle(int wheelSpeed[2], int &maxSensorValue)
 {
   // Reinitialisation
   int distance = 0;
@@ -99,16 +104,6 @@ void braitenbergObstacle(int wheelSpeed[2], bool &thresholdSpeedInstinct, int &m
   // Adapt the speed
   wheelSpeed[0] /= MIN_SENS;
   wheelSpeed[1] /= MIN_SENS;
-
-  // Define the speed instinct
-  if (sumSensors > NB_SENSORS*MIN_SENS)
-  {
-    thresholdSpeedInstinct = true;
-  }
-  else
-  {
-    thresholdSpeedInstinct = false;
-  }
 }
 
 // -------------------
@@ -387,6 +382,9 @@ static void reset()
  */
 void reset_run()
 {
+    // Reset motors
+    wb_differential_wheels_set_speed(0, 0); // Seems not to work
+    
     // Loading the distances sensors
     for(int i=0; i<NB_SENSORS;i++) {
         ds[i]=wb_robot_get_device(string("ps" + std::to_string(i)).c_str());	// the device name is specified in the world file
@@ -417,12 +415,11 @@ void simulate(PSOParams const& params)
     int wheelSpeed[2] = { 0, 0 };            // Left and right wheel speed
     int wheelSpeedBraitenberg[2] = { 0, 0 }; // Left and right wheel speed
 
-    bool thresholdSpeedInstinct = false;
     int maxSensorValue = 0;
 
     for (std::size_t i = 0; i < PSO_ITERATIONS; ++i) {
         // Braitenberg obstacle avoidance
-        braitenbergObstacle(wheelSpeedBraitenberg, thresholdSpeedInstinct, maxSensorValue);
+        braitenbergObstacle(wheelSpeedBraitenberg, maxSensorValue);
 
         // Emission/reception between flock members
         ping(); // Indicate our presence
@@ -439,15 +436,19 @@ void simulate(PSOParams const& params)
         // Use the desired speed and orientation to compute the wheelSpeed
         computeWheelSpeeds(wheelSpeed, mySpeed, myTheta);
 
-        // Add Braitenberg (weighted with Reynolds)
-        if (thresholdSpeedInstinct)
-        {
-            wheelSpeed[0] -= wheelSpeed[0] * maxSensorValue / (2 * MAX_SENS);
-            wheelSpeed[1] -= wheelSpeed[1] * maxSensorValue / (2 * MAX_SENS);
-        }
-        wheelSpeed[0] += wheelSpeedBraitenberg[0];
-        wheelSpeed[1] += wheelSpeedBraitenberg[1];
-
+        
+        // Compute weightReynolds (if we are stuck, we forget about reynolds and use braitenberg instead)
+        double currentSpeed = std::abs(wheelSpeed[0] + wheelSpeedBraitenberg[0] + wheelSpeed[1] + wheelSpeedBraitenberg[1]); // Are we still or not ?
+        double weightReynolds = 1.0 / (1.0 + std::exp(-(currentSpeed - thresholdSpeedReynolds) / sigmaSpeedReynolds)); // Use sigmoid for the transition between the two modes
+        
+        // Weighted speed (with Reynolds)
+        wheelSpeed[0] = wheelSpeed[0]*weightReynolds + wheelSpeedBraitenberg[0];
+        wheelSpeed[1] = wheelSpeed[1]*weightReynolds + wheelSpeedBraitenberg[1];
+        
+        // Put an hard speed limit !!
+        checkLimit(wheelSpeed[0], MAX_WHEEL_SPEED);
+        checkLimit(wheelSpeed[1], MAX_WHEEL_SPEED);
+  
         // Set speed
         wb_differential_wheels_set_speed(wheelSpeed[0], wheelSpeed[1]);
 
