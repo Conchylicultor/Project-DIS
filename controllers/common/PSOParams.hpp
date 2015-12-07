@@ -4,17 +4,6 @@
 #include <cstddef>
 #include <ostream>
 
-
-static const unsigned int NB_PARAMS = 6;
-
-// Normalize using x = (x-min) / (max-min)
-static double minMaxParams[NB_PARAMS][2] = {{0.0, 1.0}, // cohesionThreshold
-                                            {0.0, 1.0}, // cohesionWeight
-                                            {0.0, 1.0}, // separationThreshold
-                                            {0.0, 1.0}, // spearationWeight
-                                            {0.0, 1.0}, // alignmentWeight
-                                            {0.0, 1.0}}; //migrationWeigth
-
 /*
  * Parameters to optimise
  */
@@ -38,14 +27,12 @@ struct PSOParams
     double alignmentWeight;
 
     // Migration
-    double migrationWeigth;
+    double migrationWeight;
+
+    // Common to all parameters: the duration of the simulation during which the fitness is evaluated
+    static std::size_t const SIMULATION_STEPS = 1000; // * TIME_STEP = total duration [ms]
 };
 
-// Common to all parameters: the duration of the simulation during which the fitness is evaluated
-static std::size_t const PSO_ITERATIONS = 1000; // * TIME_STEP = total duration [ms]
-// TODO increase this number
-
-static PSOParams const& DEFAULT_PSOPARAMS{0.1, 0.5, 0.1, 1.0, 0.01, 0.02};
 
 inline std::ostream& operator<<(std::ostream& out, PSOParams const& params)
 {
@@ -55,15 +42,26 @@ inline std::ostream& operator<<(std::ostream& out, PSOParams const& params)
                << "\tseparation threshold = " << params.separationThreshold << "\n"
                << "\tseparation weight    = " << params.spearationWeight    << "\n"
                << "\talignment weight     = " << params.alignmentWeight     << "\n"
-               << "\tmigration weight     = " << params.migrationWeigth     << "\n"
+               << "\tmigration weight     = " << params.migrationWeight     << "\n"
                << "]";
 }
 
 
+
+static const unsigned int NB_PARAMS = 6;
+
+// Normalize using x = (x-min) / (max-min)
+static double minMaxParams[NB_PARAMS][2] = {{0.0, 1.0}, // cohesionThreshold
+                                            {0.0, 1.0}, // cohesionWeight
+                                            {0.0, 1.0}, // separationThreshold
+                                            {0.0, 1.0}, // spearationWeight
+                                            {0.0, 1.0}, // alignmentWeight
+                                            {0.0, 1.0}}; //migrationWeigth
+
 /*
  * Normalize the robots params to [0-1] before applying PSO
  */
-PSOParams normalizeParams(const PSOParams &paramsToNormalize)
+inline PSOParams normalizeParams(const PSOParams &paramsToNormalize)
 {
   PSOParams params = paramsToNormalize;
   double *paramsArray = reinterpret_cast<double*>(&params);
@@ -79,7 +77,7 @@ PSOParams normalizeParams(const PSOParams &paramsToNormalize)
 /*
  * "De-normalize" the params before sending them to the epucks
  */
-PSOParams restoreParams(const PSOParams &paramsToRestore)
+inline PSOParams restoreParams(const PSOParams &paramsToRestore)
 {
   PSOParams params = paramsToRestore;
   double *paramsArray = reinterpret_cast<double*>(&params);

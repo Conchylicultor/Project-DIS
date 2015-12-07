@@ -9,6 +9,7 @@
 #include <webots/emitter.h>
 #include <webots/supervisor.h>
 
+#include "supervisor.hpp"
 #include "../common/Config.hpp"
 #include "../common/PSOParams.hpp"
 
@@ -25,8 +26,8 @@ using namespace std;
 
 // Print information
 #define coutSuper std::cout << "[" << flockId << "]: "
-#define PRINT_INFO if(printIter == 0)
-const int frequencyPrint = 100;
+#define PRINT_INFO if(printIter > 0 && printIter % frequencyPrint == 0)
+const int frequencyPrint = 10000;
 int printIter = 0;
 
 
@@ -158,19 +159,6 @@ double computeFitnessStep(void)
 // Reset functions
 // -------------------
 
-/*
- * Configuration of an e-puck, such as position, rotation
- *
- * see https://www.cyberbotics.com/guide/using-numerical-optimization-methods.php
- */
-struct RobotConfig
-{
-    std::array<double, 3> translation;
-    std::array<double, 4> rotation;
-};
-
-// TODO change FLOCK_SIZE when merging "super" supervisors together
-using RobotConfigs = std::array<RobotConfig, FLOCK_SIZE>;
 
 /*
  * Read the current configuration for this robot
@@ -209,8 +197,6 @@ void resetRobot(std::string const& robotName, RobotConfig const& config)
 
     // NOTE: motors are not reset. This might create a slight imperfection for the
     // few first iterations but nothing significant for the overall fitness measure.
-
-    std::cout << "Robot " << robotName << " was physically reset" << std::endl;
 }
 
 /*
@@ -315,11 +301,15 @@ void reset(void)
 /*
  * Compute the fitness for the current PSO parameters
  */
-double simulate()
+double simulate(RobotConfigs const& initialConfigs, PSOParams const& params)
 {
+  // Re-initialize the robots with the current PSO settings
+  resetAllRobots(initialConfigs);
+  sendParamsToRobots(params); // The params are "De-normalized" inside the function
+
   double fitnessGlobal = 0.0;
 
-  for (std::size_t nbTimestep = 0; nbTimestep < PSO_ITERATIONS; ++nbTimestep)
+  for (std::size_t nbTimestep = 0; nbTimestep < PSOParams::SIMULATION_STEPS; ++nbTimestep)
   {
     // Which supervisor are we ?
     PRINT_INFO
@@ -369,44 +359,12 @@ double simulate()
       prevCenterOfMass[j] = centerOfMass[j];
     }
 
-    printIter = nbTimestep % frequencyPrint; // Update the printing iterator
+    ++printIter; // Update the printing iterator
 
     wb_robot_step(TIME_STEP);
   }
 
   return fitnessGlobal;
-}
-
-
-/*
- * Main function.
- */
-int main(int argc, char *args[])
-{
-  cout << "Loading supervisor..." << endl;
-  
-  reset();
-
-  // Read the initial configuration for all robots
-  RobotConfigs initialConfigs = readAllRobotsConfig();
-
-  PSOParams params = normalizeParams(DEFAULT_PSOPARAMS);
-
-  while (true)
-  {
-    // Re-initialize the robots
-    resetAllRobots(initialConfigs);
-
-    // Let robots know the new PSO parameters
-    sendParamsToRobots(params); // The params are "De-normalized" inside the function
-
-    // Run the simulation for a while and compute the fitness
-    double fitness = simulate();
-
-    // TODO Update params
-  }
-
-  return 0;
 }
 
 
