@@ -28,7 +28,7 @@ using PositionWithFitness = std::pair<Position, Fitness>;
 
 using Evalutor  = std::function<Fitness(Position const&)>;
 
-std::size_t constexpr SWARM_SIZE = 5;
+std::size_t constexpr SWARM_SIZE = 15;
 std::size_t constexpr MAX_ITERATIONS = 10000;
 double constexpr OMEGA = 0.7;  // impact of the particle's speed (inertia)
 double constexpr PHI_P = 0.15; // impact of the personal best

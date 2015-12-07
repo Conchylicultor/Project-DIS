@@ -18,8 +18,7 @@ struct RobotConfig
     std::array<double, 4> rotation;
 };
 
-// TODO change FLOCK_SIZE when merging "super" supervisors together
-using RobotConfigs = std::array<RobotConfig, FLOCK_SIZE>;
+using RobotConfigs = std::array<RobotConfig, FLOCK_SIZE * NUMBER_OF_FLOCKS>;
 
 
 /*
