@@ -53,7 +53,7 @@ Vec2 neighboursPos[FLOCK_SIZE]; // Relative positions of the neighbours
 Vec2 neighboursPrevPos[FLOCK_SIZE];
 Vec2 neighboursRelativeSpeed[FLOCK_SIZE];
 
-const Vec2 migrationVec(0.0,-20.0); // TODO: Change our migration vector ?
+const Vec2 migrationVec(0.0,-0.3); // TODO: Change our migration vector ?
 
 // -------------------
 // Obstacle avoidance functions
@@ -337,9 +337,9 @@ void reynoldsRules(const PSOParams &params)
 
   // Aggregation of all behaviors with relative influence determined by weights
   mySpeed = cohesion * params.cohesionWeight;
-  mySpeed +=  dispersion * params.spearationWeight;
-  mySpeed +=  consistency * params.alignmentWeight;
-  mySpeed += (migrationVec-myPosition) * params.migrationWeight; // TODO: Change the migration policy ??
+  mySpeed += dispersion * params.spearationWeight;
+  mySpeed += consistency * params.alignmentWeight;
+  mySpeed += migrationVec * params.migrationWeight; // TODO: Change the migration policy ??
 }
 
 // -------------------

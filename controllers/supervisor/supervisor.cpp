@@ -33,7 +33,7 @@ int printIter = 0;
 
 // Fitness weights
 static const double WEIGHT_ORIENTATION = 1.0;
-static const double WEIGHT_COHESION = 1.0;
+static const double WEIGHT_COHESION = 3.0;
 static const double WEIGHT_VELOCITY = 1.0;
 
 
@@ -364,7 +364,7 @@ double simulate(RobotConfigs const& initialConfigs, PSOParams const& params)
     wb_robot_step(TIME_STEP);
   }
 
-  return fitnessGlobal;
+  return fitnessGlobal / PSOParams::SIMULATION_STEPS;
 }
 
 
