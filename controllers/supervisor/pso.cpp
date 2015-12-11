@@ -308,6 +308,13 @@ int main(int, char const** argv) try
     } else {
         basepath = basepath.substr(0, lastSlashPos + 1);
     }
+    
+    std::ofstream fitnessEvolutionFile("fitnessEvolve.csv");
+    if(!fitnessEvolutionFile.is_open())
+    {
+      std::cout << "Error: Cannot open the fitness trace file." << std::endl;
+      // throw...
+    }
 
     std::cout << "Basepath is " << basepath << std::endl;
 
@@ -354,6 +361,7 @@ int main(int, char const** argv) try
         PositionWithFitness nextGlobalBest;
         nextGlobalBest.second = std::numeric_limits<Fitness>::lowest();
 
+        double averageFitness = 0.0;
         for (std::size_t i = 0; i < positions.size(); ++i)
         {
             // Update i-th particle's speed and position
@@ -366,6 +374,7 @@ int main(int, char const** argv) try
 
             // Evaluate performance
             auto fitness = computeFitness(positions[i]);
+            averageFitness += fitness;
 
             // Update our knowledge of the search space
             auto candidate = PositionWithFitness{ positions[i], fitness };
@@ -379,6 +388,7 @@ int main(int, char const** argv) try
 
             sumOfSpeeds += std::sqrt((speeds[i].apply([](double x) { return x * x; })).sum());
         }
+        averageFitness /= positions.size();
 
         absoluteBest = selectBest(absoluteBest, nextGlobalBest);
         globalBest = nextGlobalBest;
@@ -404,7 +414,12 @@ int main(int, char const** argv) try
 
         saveState(basepath + SAVE_FILE, t, positions, speeds, personalBests, globalBest, absoluteBest);
         std::cout << "Saved to " << SAVE_FILE << std::endl;
+        
+        // Update the fitness trace file
+        fitnessEvolutionFile << absoluteBest.second << ", " << averageFitness << std::endl;
     }
+    
+    fitnessEvolutionFile.close();
 
     std::cout << "Best fitness: " << globalBest.second << "\n"
               << "Best settings: " << toParams(globalBest.first) << std::endl;

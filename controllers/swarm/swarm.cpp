@@ -339,7 +339,10 @@ void reynoldsRules(const PSOParams &params)
   mySpeed = cohesion * params.cohesionWeight;
   mySpeed += dispersion * params.spearationWeight;
   mySpeed += consistency * params.alignmentWeight;
-  mySpeed += migrationVec * params.migrationWeight; // TODO: Change the migration policy ??
+  if(params.migrationWeight > 3.0)
+    mySpeed += migrationVec * 3.0;
+  else
+    mySpeed += migrationVec * params.migrationWeight; // TODO: Change the migration policy ??
 }
 
 // -------------------
