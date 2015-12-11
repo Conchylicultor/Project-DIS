@@ -65,7 +65,7 @@ const double thresholdSpeedReynolds = 120.0; // Bellow this value, we reduce rey
 const double sigmaSpeedReynolds = 30.0; // Transition parametter
 
 // Braitenberg parameters
-const int MAX_SENS = 4096; // Maximum sensibility value
+const int MIN_SENS = 350; // Minimum sensibility value
 const int weightMatrix[2][NB_SENSORS] = {{-72,-58,-36,8,10,36,28,18},
                                          {17,29,34,10,8,-38,-56,-76}}; // Braitenberg weight
 
