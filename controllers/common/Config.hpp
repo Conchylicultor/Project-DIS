@@ -12,6 +12,7 @@ int const EPUCK_EPCUK_CHANNEL = 1;
 int const SUPER_EPUCK_CHANNEL = 9;
 
 // Warning: ADAPT TO THE NUMBER OF ROBOTS
+int const NUMBER_OF_FLOCKS = 2;
 int const FLOCK_SIZE = 5;
 
 #endif

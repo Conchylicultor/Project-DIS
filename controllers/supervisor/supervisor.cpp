@@ -37,16 +37,19 @@ static const double WEIGHT_COHESION = 3.0;
 static const double WEIGHT_VELOCITY = 1.0;
 
 
-int flockId = 0; // Will correspond to the flock associated with the supervisor
+struct Flock
+{
+    WbNodeRef robs[FLOCK_SIZE];
+    WbFieldRef robs_translation[FLOCK_SIZE];
+    WbFieldRef robs_rotation[FLOCK_SIZE];
 
-static WbNodeRef robs[FLOCK_SIZE];
-static WbFieldRef robs_translation[FLOCK_SIZE];
-static WbFieldRef robs_rotation[FLOCK_SIZE];
+    double loc[FLOCK_SIZE][4]; // Contain the localisation of all robots
+    double centerOfMass[3] = { 0.0, 0.0, 0.0 };
+    double prevCenterOfMass[3] = { 0.0, 0.0, 0.0 }; // Location of the center of mass at time (t-1)
+    double migrationUrge[3] = { 1.0, 0.0, 0.0 };    // Vector containing the direction of the urge
+};
 
-double loc[FLOCK_SIZE][4]; // Contain the localisation of all robots
-double centerOfMass[3] = {0.0,0.0,0.0};
-double prevCenterOfMass[3] = {0.0,0.0,0.0}; // Location of the center of mass at time (t-1)
-double migrationUrge[3] = {1.0,0.0,0.0}; // Vector containing the direction of the urge
+std::array<Flock, NUMBER_OF_FLOCKS> flocks;
 
 WbDeviceTag emitter; // This emitter is only used to send e-puck their PSO settings
 
@@ -79,12 +82,12 @@ double computeDot(double x[3],double y[3])
 /*
  * Compute orientation metric.
  */
-double getOrientation(void)
+double getOrientation(std::size_t flockId)
 {
   std::complex<double> orientation = 0.0;
   for(int i=0 ; i<FLOCK_SIZE ; ++i)
   {
-    orientation += std::polar(1.0, loc[i][3]); // 1.0 * exp(i*theta)
+    orientation += std::polar(1.0, flocks[flockId].loc[i][3]); // 1.0 * exp(i*theta)
   }
 
   // Normalize
@@ -94,7 +97,7 @@ double getOrientation(void)
 /*
  * Compute cohesion metric.
  */
-double getCohesion(void)
+double getCohesion(std::size_t flockId)
 {
   // The center of mass is already computed in the main function
 
@@ -102,7 +105,7 @@ double getCohesion(void)
   double dist = 0.0;
   for(int i=0 ; i<FLOCK_SIZE ; ++i)
   {
-    dist += computeDist(centerOfMass, loc[i]); // Thanks to the dirty C syntax, loc[i][4] is automatically "cast" into loc[i][3]
+    dist += computeDist(flocks[flockId].centerOfMass, flocks[flockId].loc[i]); // Thanks to the dirty C syntax, loc[i][4] is automatically "cast" into loc[i][3]
   }
   dist /= FLOCK_SIZE;
 
@@ -113,14 +116,15 @@ double getCohesion(void)
 /*
  * Compute velocity metric.
  */
-double getVelocity(void)
+double getVelocity(std::size_t flockId)
 {
   const double maxVelocity = 0.000104 * TIME_STEP; // [m/TIME_STEP]
 
   // Compute the current velocity
-  double velocityVector[3] = {centerOfMass[0] - prevCenterOfMass[0],
-                              centerOfMass[1] - prevCenterOfMass[1],
-                              centerOfMass[2] - prevCenterOfMass[2]}; // = x(t) - x(t-1)
+  double velocityVector[3] = {flocks[flockId].centerOfMass[0] - flocks[flockId].prevCenterOfMass[0],
+                              flocks[flockId].centerOfMass[1] - flocks[flockId].prevCenterOfMass[1],
+                              flocks[flockId].centerOfMass[2] - flocks[flockId].prevCenterOfMass[2]};
+  // = x(t) - x(t-1)
 
   // First way: Compute the projection with respect to the migration urge
   //double currentVelocity = computeDot(velocityVector, migrationUrge);
@@ -135,11 +139,11 @@ double getVelocity(void)
 /*
  * Compute performance metric.
  */
-double computeFitnessStep(void)
+double computeFitnessStep(std::size_t flockId)
 {
-  double orientation = getOrientation();
-  double cohesion = getCohesion();
-  double velocity = getVelocity();
+  double orientation = getOrientation(flockId);
+  double cohesion = getCohesion(flockId);
+  double velocity = getVelocity(flockId);
 
   PRINT_INFO
   {
@@ -201,8 +205,6 @@ void resetRobot(std::string const& robotName, RobotConfig const& config)
 
 /*
  * Get the name of the i-th robot
- *
- * NOTE: works only with one flock currently.
  */
 std::string getRobotName(std::size_t i)
 {
@@ -271,28 +273,29 @@ void reset(void)
 {
   wb_robot_init();
 
-  // Extract the number of flock
-  string supervisorName = wb_robot_get_name();
-  sscanf(supervisorName.c_str(),"super%d",&flockId); // read robot id from the robot's name
-
   emitter = wb_robot_get_device("emitter");
   wb_emitter_set_channel(emitter, SUPER_EPUCK_CHANNEL);
 
-  // Get the epucks from the tree
-  for (int i=0 ; i<FLOCK_SIZE ; i++) {
-    string robotName = "epuck" + std::to_string(i + (flockId-1)*FLOCK_SIZE); // Load the epuck corresponding to the right flock
+  for (int flockId = 0; flockId < NUMBER_OF_FLOCKS; ++flockId)
+  {
+      auto& flock = flocks[flockId];
 
-    robs[i] = wb_supervisor_node_get_from_def(robotName.c_str());
-    if(robs[i] == NULL) // Check correctness
-    {
-      cout << "ERROR: Wrong number of epuck: " << robotName << endl;
-      exit(-1);
-    }
-    robs_translation[i] = wb_supervisor_node_get_field(robs[i],"translation");
-    robs_rotation[i] = wb_supervisor_node_get_field(robs[i],"rotation");
+      for (int i = 0; i < FLOCK_SIZE; i++)
+      {
+          string robotName = "epuck" + std::to_string(i + flockId * FLOCK_SIZE);
+
+          flock.robs[i] = wb_supervisor_node_get_from_def(robotName.c_str());
+          if (flock.robs[i] == NULL) // Check correctness
+          {
+              cout << "ERROR: Wrong number of epuck: " << robotName << endl;
+              exit(-1);
+          }
+          flock.robs_translation[i] = wb_supervisor_node_get_field(flock.robs[i], "translation");
+          flock.robs_rotation[i] = wb_supervisor_node_get_field(flock.robs[i], "rotation");
+      }
   }
 
-  cout << FLOCK_SIZE << " robots loaded!" << endl;
+  cout << FLOCK_SIZE * NUMBER_OF_FLOCKS << " robots loaded!" << endl;
 
   // TODO: Compute the migration urge
   // The migration urge is normalized
@@ -311,60 +314,70 @@ double simulate(RobotConfigs const& initialConfigs, PSOParams const& params)
 
   for (std::size_t nbTimestep = 0; nbTimestep < PSOParams::SIMULATION_STEPS; ++nbTimestep)
   {
-    // Which supervisor are we ?
-    PRINT_INFO
-    {
-      coutSuper << "[Supervisor " << flockId << "]" << endl;
-    }
-    // Update the robot locations
-    for (int i=0 ; i<FLOCK_SIZE ; i++)
-    {
-      loc[i][0] = wb_supervisor_field_get_sf_vec3f(robs_translation[i])[0]; // x
-      loc[i][1] = wb_supervisor_field_get_sf_vec3f(robs_translation[i])[1]; // y (probably useless)
-      loc[i][2] = wb_supervisor_field_get_sf_vec3f(robs_translation[i])[2]; // z
-      loc[i][3] = wb_supervisor_field_get_sf_rotation(robs_rotation[i])[3]; // theta (rotation)
-    }
-
-    // Update the center of mass
-    for(int j=0 ; j<3 ; ++j) // 3 is the number of dimension
-    {
-      centerOfMass[j] = 0.0f; // Reset
-    }
-    for(int i=0 ; i<FLOCK_SIZE ; ++i)
-    {
-      for(int j=0 ; j<3 ; ++j)
+      for (int flockId = 0; flockId < NUMBER_OF_FLOCKS; ++flockId)
       {
-        centerOfMass[j] += loc[i][j] / FLOCK_SIZE; // We add the contribution of each robot
+          auto& flock = flocks[flockId];
+
+          // Update the robot locations
+          for (int i = 0; i < FLOCK_SIZE; i++)
+          {
+              flock.loc[i][0] = wb_supervisor_field_get_sf_vec3f(flock.robs_translation[i])[0]; // x
+              flock.loc[i][1] = wb_supervisor_field_get_sf_vec3f(flock.robs_translation[i])[1]; // y (probably useless)
+              flock.loc[i][2] = wb_supervisor_field_get_sf_vec3f(flock.robs_translation[i])[2]; // z
+              flock.loc[i][3] = wb_supervisor_field_get_sf_rotation(flock.robs_rotation[i])[3]; // theta (rotation)
+          }
+
+          // Update the center of mass
+          for (int j = 0; j < 3; ++j) // 3 is the number of dimension
+          {
+              flock.centerOfMass[j] = 0.0f; // Reset
+          }
+          for (int i = 0; i < FLOCK_SIZE; ++i)
+          {
+              for (int j = 0; j < 3; ++j)
+              {
+                  // We add the contribution of each robot
+                  flock.centerOfMass[j] += flock.loc[i][j] / FLOCK_SIZE;
+              }
+          }
+
+          if (nbTimestep > 0) // no speed at time 0
+          {
+              double fitnessInstant = computeFitnessStep(flockId);
+
+              // Update fitness
+              if (nbTimestep > 0)
+              {
+                  // Plot every x timesteps
+                  PRINT_INFO
+                  {
+                      coutSuper << "Performances of flock " << flockId << ":" << endl;
+                      coutSuper << fitnessInstant << " (instant)" << endl;
+                  }
+              }
+
+              fitnessGlobal += fitnessInstant;
+              PRINT_INFO
+              {
+                  coutSuper << "Performances overall:" << endl;
+                  coutSuper << fitnessGlobal / nbTimestep / NUMBER_OF_FLOCKS << endl;
+              }
+          }
+
+          // (t-1) = t
+          for (int j = 0; j < 3; ++j) // 3 is the number of dimension
+          {
+              flock.prevCenterOfMass[j] = flock.centerOfMass[j];
+          }
       }
-    }
 
-    // Update fitness
-    if(nbTimestep > 0)
-    {
-      double fitnessInstant = computeFitnessStep();
-      fitnessGlobal += fitnessInstant;
 
-      // Plot every x timesteps
-      PRINT_INFO
-      {
-        coutSuper << "Performances:" << endl;
-        coutSuper << fitnessInstant << " (instant)" << endl;
-        coutSuper << fitnessGlobal/nbTimestep << " (global)" << endl;
-      }
-    }
+      ++printIter; // Update the printing iterator
 
-    // (t-1) = t
-    for(int j=0 ; j<3 ; ++j) // 3 is the number of dimension
-    {
-      prevCenterOfMass[j] = centerOfMass[j];
-    }
-
-    ++printIter; // Update the printing iterator
-
-    wb_robot_step(TIME_STEP);
+      wb_robot_step(TIME_STEP);
   }
 
-  return fitnessGlobal / PSOParams::SIMULATION_STEPS;
+  return fitnessGlobal / PSOParams::SIMULATION_STEPS / NUMBER_OF_FLOCKS;
 }
 
 

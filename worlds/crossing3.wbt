@@ -8,8 +8,8 @@ WorldInfo {
   basicTimeStep 16
 }
 Viewpoint {
-  orientation -0.999868 0.0162073 0.000615584 1.15569
-  position -1.60662 4.84674 2.3705
+  orientation -0.999958 0.00825069 -0.00387693 1.22556
+  position -1.08097 7.20307 2.42245
 }
 PointLight {
   intensity 0.5
@@ -26,7 +26,7 @@ Background {
   ]
 }
 DEF ground Solid {
-  translation -1.5 0 0
+  translation -1.10858 0 -0.00466633
   children [
     Shape {
       appearance Appearance {
@@ -76,31 +76,6 @@ DEF ground Solid {
   ]
   boundingObject USE ground_geo
 }
-DEF long_rock_3 Solid {
-  translation -2 0 0
-  rotation 0 1 0 1.5708
-  children [
-    Shape {
-      appearance Appearance {
-        material Material {
-          diffuseColor 1 1 1
-        }
-        texture ImageTexture {
-          url [
-            "textures/stone-2.png"
-          ]
-        }
-      }
-      geometry Box {
-        size 0.6 0.2 0.01
-      }
-    }
-  ]
-  name "short brick"
-  boundingObject DEF U_END_BOX Box {
-    size 0.6 0.2 0.01
-  }
-}
 DEF long_rock_4 Solid {
   translation -1.9 0 0.3
   children [
@@ -126,6 +101,156 @@ DEF long_rock_4 Solid {
   }
 }
 DEF long_rock_6 Solid {
+  translation -0.356609 0 0.0241681
+  rotation 0 1 0 5.49779
+  children [
+    Shape {
+      appearance Appearance {
+        material Material {
+          diffuseColor 1 1 1
+        }
+        texture ImageTexture {
+          url [
+            "textures/stone-2.png"
+          ]
+        }
+      }
+      geometry Box {
+        size 0.1 0.2 0.1
+      }
+    }
+  ]
+  name "short brick"
+  boundingObject DEF U_END_BOX Box {
+    size 0.1 0.2 0.1
+  }
+}
+DEF long_rock_6 Solid {
+  translation -1.68142 0 9.83246e-10
+  rotation 0 1 0 5.49779
+  children [
+    Shape {
+      appearance Appearance {
+        material Material {
+          diffuseColor 1 1 1
+        }
+        texture ImageTexture {
+          url [
+            "textures/stone-2.png"
+          ]
+        }
+      }
+      geometry Box {
+        size 0.1 0.2 0.1
+      }
+    }
+  ]
+  name "short brick"
+  boundingObject DEF U_END_BOX Box {
+    size 0.1 0.2 0.1
+  }
+}
+DEF long_rock_6 Solid {
+  translation -2.21882 0 0.127281
+  rotation 0 1 0 5.49779
+  children [
+    Shape {
+      appearance Appearance {
+        material Material {
+          diffuseColor 1 1 1
+        }
+        texture ImageTexture {
+          url [
+            "textures/stone-2.png"
+          ]
+        }
+      }
+      geometry Box {
+        size 0.1 0.2 0.1
+      }
+    }
+  ]
+  name "short brick"
+  boundingObject DEF U_END_BOX Box {
+    size 0.1 0.2 0.1
+  }
+}
+DEF long_rock_6 Solid {
+  translation 0.251178 0 0.12106
+  rotation 0 1 0 5.49779
+  children [
+    Shape {
+      appearance Appearance {
+        material Material {
+          diffuseColor 1 1 1
+        }
+        texture ImageTexture {
+          url [
+            "textures/stone-2.png"
+          ]
+        }
+      }
+      geometry Box {
+        size 0.1 0.2 0.1
+      }
+    }
+  ]
+  name "short brick"
+  boundingObject DEF U_END_BOX Box {
+    size 0.1 0.2 0.1
+  }
+}
+DEF long_rock_6 Solid {
+  translation 0.264518 0 -0.178127
+  rotation 0 1 0 5.49779
+  children [
+    Shape {
+      appearance Appearance {
+        material Material {
+          diffuseColor 1 1 1
+        }
+        texture ImageTexture {
+          url [
+            "textures/stone-2.png"
+          ]
+        }
+      }
+      geometry Box {
+        size 0.1 0.2 0.1
+      }
+    }
+  ]
+  name "short brick"
+  boundingObject DEF U_END_BOX Box {
+    size 0.1 0.2 0.1
+  }
+}
+DEF long_rock_6 Solid {
+  translation -2.22589 0 -0.148491
+  rotation 0 1 0 5.49779
+  children [
+    Shape {
+      appearance Appearance {
+        material Material {
+          diffuseColor 1 1 1
+        }
+        texture ImageTexture {
+          url [
+            "textures/stone-2.png"
+          ]
+        }
+      }
+      geometry Box {
+        size 0.1 0.2 0.1
+      }
+    }
+  ]
+  name "short brick"
+  boundingObject DEF U_END_BOX Box {
+    size 0.1 0.2 0.1
+  }
+}
+DEF long_rock_6 Solid {
   translation -1.9 0 -0.3
   children [
     Shape {
@@ -147,30 +272,6 @@ DEF long_rock_6 Solid {
   name "short brick"
   boundingObject DEF U_END_BOX Box {
     size 0.2 0.2 0.01
-  }
-}
-DEF long_rock_8 Solid {
-  rotation 0 1 0 1.5708
-  children [
-    Shape {
-      appearance Appearance {
-        material Material {
-          diffuseColor 1 1 1
-        }
-        texture ImageTexture {
-          url [
-            "textures/stone-2.png"
-          ]
-        }
-      }
-      geometry Box {
-        size 0.6 0.2 0.01
-      }
-    }
-  ]
-  name "short brick"
-  boundingObject DEF U_END_BOX Box {
-    size 0.6 0.2 0.01
   }
 }
 DEF long_rock_9 Solid {
