@@ -30,7 +30,7 @@ struct PSOParams
     double migrationWeight;
 
     // Common to all parameters: the duration of the simulation during which the fitness is evaluated
-    static std::size_t const SIMULATION_STEPS = 3200; // * TIME_STEP = total duration [ms]
+    static std::size_t const SIMULATION_STEPS = 1000; // * TIME_STEP = total duration [ms]
 };
 
 
