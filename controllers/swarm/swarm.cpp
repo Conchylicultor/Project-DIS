@@ -318,6 +318,9 @@ void reset_run()
     {
       neighboursPos[i] = Vec2(0.0,0.0);
     }
+
+    wb_differential_wheels_set_speed(0, 0);
+    wb_robot_step(TIME_STEP);
 }
 
 /*
@@ -369,7 +372,7 @@ void simulate(PSOParams const& params)
         // Combine those tree rules
         auto const direction = avoidance + // avoidance was already weighted
                                params.alignmentWeight * aligmnent +
-                               params.cohesionWeight * cohesion +
+                               params.cohesionWeight  * cohesion +
                                params.migrationWeight * migration;
 
         // Convert that into wheel speed

@@ -32,12 +32,10 @@ int printIter = 0;
 
 
 // Fitness weights
-static const double WEIGHT_ORIENTATION = 1.0;
-static const double WEIGHT_COHESION = 1.0;
-static const double WEIGHT_VELOCITY = 1.0;
+static const double WEIGHT_ORIENTATION = 2.0;
+static const double WEIGHT_COHESION    = 5.0;
+static const double WEIGHT_VELOCITY    = 1.0;
 
-
-int flockId = 0; // Will correspond to the flock associated with the supervisor
 
 struct Flock
 {
