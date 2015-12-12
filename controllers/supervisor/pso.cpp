@@ -30,8 +30,8 @@ using Evalutor  = std::function<Fitness(Position const&)>;
 
 std::size_t constexpr SWARM_SIZE = 15;
 std::size_t constexpr MAX_ITERATIONS = 10000;
-double constexpr OMEGA = 0.7;  // impact of the particle's speed (inertia)
-double constexpr PHI_P = 0.15; // impact of the personal best
+double constexpr OMEGA = 1.0;  // impact of the particle's speed (inertia)
+double constexpr PHI_P = 0.20; // impact of the personal best
 double constexpr PHI_G = 0.25; // impact of the global best
 // NOTE: PHI_P and PHI_G are scaled with x ~ U(0, 1).
 
