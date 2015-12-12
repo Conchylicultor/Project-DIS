@@ -341,6 +341,20 @@ int main(int, char const** argv) try
     PositionWithFitness absoluteBest;  // best of all the particles we have seen so far
     std::size_t t = 0;
 
+#if REPLAY == 1 // ONLY REPLAY BEST SETTINGS IN LOOP
+    if (!isThereFile(basepath + SAVE_FILE))
+        throw std::runtime_error("cannot replay: no settings to load");
+
+    loadState(basepath + SAVE_FILE, t, positions, speeds, personalBests, globalBest, absoluteBest);
+    std::cout << "Loaded from " << SAVE_FILE << std::endl;
+
+    while (true)
+    {
+        computeFitness(absoluteBest.first);
+        std::cout << "Restart replay..." << std::endl;
+    }
+#else  // APPLY PSO
+
     if (isThereFile(basepath + SAVE_FILE))
     {
         loadState(basepath + SAVE_FILE, t, positions, speeds, personalBests, globalBest, absoluteBest);
@@ -428,6 +442,7 @@ int main(int, char const** argv) try
 
     std::cout << "Best fitness: " << globalBest.second << "\n"
               << "Best settings: " << toParams(globalBest.first) << std::endl;
+#endif // PSO
 
     return 0;
 } catch (std::runtime_error const& re) {
