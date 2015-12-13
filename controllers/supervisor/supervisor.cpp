@@ -306,6 +306,9 @@ void reset(void)
  */
 double simulate(RobotConfigs const& initialConfigs, PSOParams const& params)
 {
+  // Debug message
+  // cout << "Simulates params: " << params << endl;
+  
   // Re-initialize the robots with the current PSO settings
   resetAllRobots(initialConfigs);
   sendParamsToRobots(params); // The params are "De-normalized" inside the function

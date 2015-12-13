@@ -35,7 +35,13 @@ double constexpr PHI_P = 0.20; // impact of the personal best
 double constexpr PHI_G = 0.25; // impact of the global best
 // NOTE: PHI_P and PHI_G are scaled with x ~ U(0, 1).
 
-std::string const& SAVE_FILE = "results.txt";
+
+#if CROSSING == 1
+    std::string const& SAVE_FILE = "results_crossing.txt";
+#else
+    std::string const& SAVE_FILE = "results_obstacles.txt";
+#endif
+
 
 using Positions = std::array<Position, SWARM_SIZE>;
 using Speeds    = std::array<Speed,    SWARM_SIZE>;
@@ -304,6 +310,12 @@ void loadState(std::string const& filename, std::size_t& t, Positions& positions
  */
 int main(int, char const** argv) try
 {
+#if CROSSING == 1
+    std::cout << "------------CROSSING------------" << std::endl;
+#else
+    std::cout << "------------OBSTACLES------------" << std::endl;
+#endif
+
     std::string basepath = argv[0];
     auto lastSlashPos = basepath.rfind('/');
     if (lastSlashPos == std::string::npos) {
