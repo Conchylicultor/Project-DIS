@@ -1,4 +1,4 @@
-#VRML_SIM V8.3.1 utf8
+#VRML_SIM V8.3.0 utf8
 WorldInfo {
   info [
     "Description"
@@ -8,8 +8,8 @@ WorldInfo {
   basicTimeStep 16
 }
 Viewpoint {
-  orientation -0.999958 0.00825069 -0.00387693 1.22556
-  position -1.08097 7.20307 2.42245
+  orientation -0.999083 -0.0167354 -0.0394003 1.22664
+  position -1.11361 4.22971 1.35301
 }
 PointLight {
   intensity 0.5
@@ -98,106 +98,6 @@ DEF long_rock_4 Solid {
   name "short brick"
   boundingObject DEF U_END_BOX Box {
     size 0.2 0.2 0.01
-  }
-}
-DEF long_rock_6 Solid {
-  translation -2.21882 0 0.127281
-  rotation 0 1 0 5.49779
-  children [
-    Shape {
-      appearance Appearance {
-        material Material {
-          diffuseColor 1 1 1
-        }
-        texture ImageTexture {
-          url [
-            "textures/stone-2.png"
-          ]
-        }
-      }
-      geometry Box {
-        size 0.1 0.2 0.1
-      }
-    }
-  ]
-  name "short brick"
-  boundingObject DEF U_END_BOX Box {
-    size 0.1 0.2 0.1
-  }
-}
-DEF long_rock_6 Solid {
-  translation 0.251178 0 0.12106
-  rotation 0 1 0 5.49779
-  children [
-    Shape {
-      appearance Appearance {
-        material Material {
-          diffuseColor 1 1 1
-        }
-        texture ImageTexture {
-          url [
-            "textures/stone-2.png"
-          ]
-        }
-      }
-      geometry Box {
-        size 0.1 0.2 0.1
-      }
-    }
-  ]
-  name "short brick"
-  boundingObject DEF U_END_BOX Box {
-    size 0.1 0.2 0.1
-  }
-}
-DEF long_rock_6 Solid {
-  translation 0.264518 0 -0.178127
-  rotation 0 1 0 5.49779
-  children [
-    Shape {
-      appearance Appearance {
-        material Material {
-          diffuseColor 1 1 1
-        }
-        texture ImageTexture {
-          url [
-            "textures/stone-2.png"
-          ]
-        }
-      }
-      geometry Box {
-        size 0.1 0.2 0.1
-      }
-    }
-  ]
-  name "short brick"
-  boundingObject DEF U_END_BOX Box {
-    size 0.1 0.2 0.1
-  }
-}
-DEF long_rock_6 Solid {
-  translation -2.22589 0 -0.148491
-  rotation 0 1 0 5.49779
-  children [
-    Shape {
-      appearance Appearance {
-        material Material {
-          diffuseColor 1 1 1
-        }
-        texture ImageTexture {
-          url [
-            "textures/stone-2.png"
-          ]
-        }
-      }
-      geometry Box {
-        size 0.1 0.2 0.1
-      }
-    }
-  ]
-  name "short brick"
-  boundingObject DEF U_END_BOX Box {
-    size 0.1 0.2 0.1
   }
 }
 DEF long_rock_6 Solid {
