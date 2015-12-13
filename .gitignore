@@ -1,5 +1,8 @@
 .*.wbproj
 .*.wbt.project
 build/
-supervisor
-swarm
+controllers/supervisor/supervisor
+controllers/swarm/swarm
+*.txt
+*.csv
+*.bak

@@ -30,7 +30,11 @@ struct PSOParams
     double migrationWeight;
 
     // Common to all parameters: the duration of the simulation during which the fitness is evaluated
-    static std::size_t const SIMULATION_STEPS = 3200; // * TIME_STEP = total duration [ms]
+#if CROSSING == 1
+    static std::size_t const SIMULATION_STEPS = 1000;// * TIME_STEP = total duration [ms]
+#else
+    static std::size_t const SIMULATION_STEPS = 3200; // Longer duration for the obstacle world
+#endif
 };
 
 

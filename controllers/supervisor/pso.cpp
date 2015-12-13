@@ -35,7 +35,13 @@ double constexpr PHI_P = 0.20; // impact of the personal best
 double constexpr PHI_G = 0.25; // impact of the global best
 // NOTE: PHI_P and PHI_G are scaled with x ~ U(0, 1).
 
-std::string const& SAVE_FILE = "results.txt";
+
+#if CROSSING == 1
+    std::string const& SAVE_FILE = "results_crossing.txt";
+#else
+    std::string const& SAVE_FILE = "results_obstacles.txt";
+#endif
+
 
 using Positions = std::array<Position, SWARM_SIZE>;
 using Speeds    = std::array<Speed,    SWARM_SIZE>;
@@ -54,6 +60,7 @@ Position createRandomPosition()
         uniform(0.0, 1.0), // alignment weight
         uniform(0.0, 1.0), // migration weight
     };
+    static_assert(NB_PARAMS == 6, "wrong size");
 }
 
 
@@ -70,6 +77,7 @@ Speed createRandomSpeed()
         uniform(-0.1, 0.1), // alignment weight
         uniform(-0.1, 0.1), // migration weight
     };
+    static_assert(NB_PARAMS == 6, "wrong size");
 }
 
 
@@ -86,6 +94,7 @@ Modulator createRandomModulators()
         uniform(0.0, 1.0), // alignment weight
         uniform(0.0, 1.0), // migration weight
     };
+    static_assert(NB_PARAMS == 6, "wrong size");
 }
 
 
@@ -263,32 +272,32 @@ void loadState(std::string const& filename, std::size_t& t, Positions& positions
 
     for (std::size_t i = 0; i < size; ++i)
     {
-        positions[i].resize(6); // number of dimensions
+        positions[i].resize(NB_PARAMS); // number of dimensions
         in >> trash >> positions[i];
     }
     ensureValid("positions");
 
     for (std::size_t i = 0; i < size; ++i)
     {
-        speeds[i].resize(6);
+        speeds[i].resize(NB_PARAMS);
         in >> trash >> speeds[i];
     }
     ensureValid("speeds");
 
     for (std::size_t i = 0; i < size; ++i)
     {
-        personalBests[i].first.resize(6);
+        personalBests[i].first.resize(NB_PARAMS);
         in >> trash >> personalBests[i].second
            >> trash >> personalBests[i].first;
     }
     ensureValid("personal bests");
 
-    globalBest.first.resize(6);
+    globalBest.first.resize(NB_PARAMS);
     in >> trash >> globalBest.second
        >> trash >> globalBest.first;
     ensureValid("global best");
 
-    absoluteBest.first.resize(6);
+    absoluteBest.first.resize(NB_PARAMS);
     in >> trash >> absoluteBest.second
        >> trash >> absoluteBest.first;
     ensureValid("absolute best");
@@ -301,6 +310,12 @@ void loadState(std::string const& filename, std::size_t& t, Positions& positions
  */
 int main(int, char const** argv) try
 {
+#if CROSSING == 1
+    std::cout << "------------CROSSING------------" << std::endl;
+#else
+    std::cout << "------------OBSTACLES------------" << std::endl;
+#endif
+
     std::string basepath = argv[0];
     auto lastSlashPos = basepath.rfind('/');
     if (lastSlashPos == std::string::npos) {
@@ -347,8 +362,9 @@ int main(int, char const** argv) try
 
     while (true)
     {
-        computeFitness(absoluteBest.first);
-        std::cout << "Restart replay..." << std::endl;
+        std::cout << "Start replay..." << std::endl;
+        double fitness = computeFitness(absoluteBest.first);
+        std::cout << "Fitness: " << fitness << std::endl;
     }
 #else  // APPLY PSO
 
@@ -365,7 +381,8 @@ int main(int, char const** argv) try
         saveState(basepath + SAVE_FILE, t, positions, speeds, personalBests, globalBest, absoluteBest);
     }
 
-    std::cout << "Initial absolute best fitness: " << absoluteBest.second << std::endl;
+    std::cout << "Initial absolute best fitness: " << absoluteBest.second << "\n"
+              << "Initial absolute best settings: " << toParams(absoluteBest.first) << std::endl;
 
     // Run PSO optimisation for a fixed number of iterations
     for (; t < MAX_ITERATIONS; ++t)
@@ -414,8 +431,9 @@ int main(int, char const** argv) try
         std::cout << "\n\n" << std::string(80, '*') << "\n"
                   << "\tEnd of iteration " << t
                   << " with absolute best fitness of " << absoluteBest.second
-                  << " and best settings: " << toParams(absoluteBest.first) << "\n"
-                  << " global best has fitness of " << globalBest.second << "\n"
+                  << " and absolute best settings: " << toParams(absoluteBest.first) << "\n"
+                  << " global best has fitness of " << globalBest.second
+                  << " and global best settings: " << toParams(globalBest.first) << "\n"
                   << std::string(80, '*') << "\n\n"
                   << std::endl;
 
