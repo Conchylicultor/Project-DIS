@@ -350,8 +350,9 @@ int main(int, char const** argv) try
 
     while (true)
     {
-        computeFitness(absoluteBest.first);
-        std::cout << "Restart replay..." << std::endl;
+        std::cout << "Start replay..." << std::endl;
+        double fitness = computeFitness(absoluteBest.first);
+        std::cout << "Fitness: " << fitness << std::endl;
     }
 #else  // APPLY PSO
 
@@ -435,7 +436,7 @@ int main(int, char const** argv) try
         std::cout << "Saved to " << SAVE_FILE << std::endl;
         
         // Update the fitness trace file
-        fitnessEvolutionFile << absoluteBest.second << ", " << averageFitness << std::endl;
+        fitnessEvolutionFile << globalBest.second << ", " << averageFitness << std::endl;
     }
     
     fitnessEvolutionFile.close();
