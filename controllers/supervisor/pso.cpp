@@ -416,7 +416,7 @@ int main(int, char const** argv) try
         std::cout << "Saved to " << SAVE_FILE << std::endl;
         
         // Update the fitness trace file
-        fitnessEvolutionFile << absoluteBest.second << ", " << averageFitness << std::endl;
+        fitnessEvolutionFile << globalBest.second << ", " << averageFitness << std::endl;
     }
     
     fitnessEvolutionFile.close();
